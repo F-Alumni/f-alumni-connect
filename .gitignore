@@ -1,0 +1,39 @@
+## .NET & Visual Studio
+[Bb]in/
+[Oo]bj/
+[Tt]est[Rr]esults/
+.vs/
+.vscode/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.pidb
+*.booproj
+*.svclog
+
+## Build & Publish artifacts
+_ReSharper*/
+*.dotCover
+*.nupkg
+publish/
+
+## Logs & Temp files
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+
+## OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+
+## Rider & JetBrains
+.idea/
+*.sln.iml
+
+## Backups
+.subrepos_git_backup/

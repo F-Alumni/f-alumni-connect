@@ -1,0 +1,5 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Contracts must always have LF line endings across all platforms
+contracts/** text eol=lf

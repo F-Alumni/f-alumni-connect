@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 860" width="100%" height="100%" font-family="Courier New, monospace">
+  <rect width="1120" height="860" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="560" y="38" fill="#000000" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle">ERD: FAlumni_User_Db (User Service)</text>
+
+  <!-- Table 1: Users -->
+  <rect x="60" y="70" width="390" height="270" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+  <line x1="60" y1="100" x2="450" y2="100" stroke="#000000" stroke-width="1.5"/>
+  <text x="255" y="90" fill="#000000" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">Users</text>
+  <text x="72" y="122" fill="#000000" font-size="12">+ PK  Id : uniqueidentifier NOT NULL</text>
+  <text x="72" y="142" fill="#000000" font-size="12">+ UK  Email : nvarchar(150) NOT NULL</text>
+  <text x="72" y="162" fill="#000000" font-size="12">+     PasswordHash : nvarchar(500) NOT NULL</text>
+  <text x="72" y="182" fill="#000000" font-size="12">+     FullName : nvarchar(150) NOT NULL</text>
+  <text x="72" y="202" fill="#000000" font-size="12">+     Role : nvarchar(30) NOT NULL</text>
+  <text x="72" y="222" fill="#000000" font-size="12">+     AccountType : nvarchar(30) NOT NULL</text>
+  <text x="72" y="242" fill="#000000" font-size="12">+     Status : nvarchar(40) NOT NULL</text>
+  <text x="72" y="262" fill="#000000" font-size="12">+     EmailVerified : bit NOT NULL</text>
+  <text x="72" y="282" fill="#000000" font-size="12">+     SuspensionReason : nvarchar(500) NULL</text>
+  <text x="72" y="302" fill="#000000" font-size="12">+     CreatedAtUtc : datetime2 NOT NULL</text>
+  <text x="72" y="322" fill="#000000" font-size="12">+     UpdatedAtUtc : datetime2 NOT NULL</text>
+
+  <!-- Table 2: UserProfiles -->
+  <rect x="620" y="70" width="440" height="460" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+  <line x1="620" y1="100" x2="1060" y2="100" stroke="#000000" stroke-width="1.5"/>
+  <text x="840" y="90" fill="#000000" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">UserProfiles</text>
+  <text x="632" y="122" fill="#000000" font-size="12">+ PK     Id : uniqueidentifier NOT NULL</text>
+  <text x="632" y="142" fill="#000000" font-size="12">+ FK,UK  UserId : uniqueidentifier NOT NULL</text>
+  <text x="632" y="162" fill="#000000" font-size="12">+        DisplayName : nvarchar(150) NOT NULL</text>
+  <text x="632" y="182" fill="#000000" font-size="12">+        AvatarUrl : nvarchar(500) NOT NULL</text>
+  <text x="632" y="202" fill="#000000" font-size="12">+        StudentCode : nvarchar(30) NOT NULL</text>
+  <text x="632" y="222" fill="#000000" font-size="12">+        Campus : nvarchar(50) NOT NULL</text>
+  <text x="632" y="242" fill="#000000" font-size="12">+        GraduationYear : int NULL</text>
+  <text x="632" y="262" fill="#000000" font-size="12">+        Major : nvarchar(100) NOT NULL</text>
+  <text x="632" y="282" fill="#000000" font-size="12">+        CurrentCompany : nvarchar(150) NOT NULL</text>
+  <text x="632" y="302" fill="#000000" font-size="12">+        JobTitle : nvarchar(150) NOT NULL</text>
+  <text x="632" y="322" fill="#000000" font-size="12">+        Bio : nvarchar(1000) NOT NULL</text>
+  <text x="632" y="342" fill="#000000" font-size="12">+        Skills : nvarchar(500) NOT NULL</text>
+  <text x="632" y="362" fill="#000000" font-size="12">+        LinkedInUrl : nvarchar(300) NOT NULL</text>
+  <text x="632" y="382" fill="#000000" font-size="12">+        GitHubUrl : nvarchar(300) NOT NULL</text>
+  <text x="632" y="402" fill="#000000" font-size="12">+        PhoneNumber : nvarchar(30) NOT NULL</text>
+  <text x="632" y="422" fill="#000000" font-size="12">+        GoogleCalendarUrl : nvarchar(500) NOT NULL</text>
+  <text x="632" y="442" fill="#000000" font-size="12">+        ShowEmailPublicly : bit NOT NULL</text>
+  <text x="632" y="462" fill="#000000" font-size="12">+        ShowPhonePublicly : bit NOT NULL</text>
+  <text x="632" y="482" fill="#000000" font-size="12">+        ShowCompanyPublicly : bit NOT NULL</text>
+  <text x="632" y="502" fill="#000000" font-size="12">+        ShowCalendarPublicly : bit NOT NULL</text>
+  <text x="632" y="520" fill="#000000" font-size="12">+        UpdatedAtUtc : datetime2 NOT NULL</text>
+
+  <!-- Table 3: RefreshTokens -->
+  <rect x="60" y="410" width="390" height="170" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+  <line x1="60" y1="440" x2="450" y2="440" stroke="#000000" stroke-width="1.5"/>
+  <text x="255" y="430" fill="#000000" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">RefreshTokens</text>
+  <text x="72" y="462" fill="#000000" font-size="12">+ PK  Id : uniqueidentifier NOT NULL</text>
+  <text x="72" y="482" fill="#000000" font-size="12">+ FK  UserId : uniqueidentifier NOT NULL</text>
+  <text x="72" y="502" fill="#000000" font-size="12">+ UK  Token : nvarchar(250) NOT NULL</text>
+  <text x="72" y="522" fill="#000000" font-size="12">+     ExpiresAtUtc : datetime2 NOT NULL</text>
+  <text x="72" y="542" fill="#000000" font-size="12">+     IsRevoked : bit NOT NULL</text>
+  <text x="72" y="562" fill="#000000" font-size="12">+     CreatedAtUtc : datetime2 NOT NULL</text>
+
+  <!-- Table 4: VerificationTokens -->
+  <rect x="60" y="630" width="390" height="190" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+  <line x1="60" y1="660" x2="450" y2="660" stroke="#000000" stroke-width="1.5"/>
+  <text x="255" y="650" fill="#000000" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">VerificationTokens</text>
+  <text x="72" y="682" fill="#000000" font-size="12">+ PK  Id : uniqueidentifier NOT NULL</text>
+  <text x="72" y="702" fill="#000000" font-size="12">+ FK  UserId : uniqueidentifier NOT NULL</text>
+  <text x="72" y="722" fill="#000000" font-size="12">+     OtpCode : nvarchar(20) NOT NULL</text>
+  <text x="72" y="742" fill="#000000" font-size="12">+     Purpose : nvarchar(40) NOT NULL</text>
+  <text x="72" y="762" fill="#000000" font-size="12">+     ExpiresAtUtc : datetime2 NOT NULL</text>
+  <text x="72" y="782" fill="#000000" font-size="12">+     IsUsed : bit NOT NULL</text>
+  <text x="72" y="802" fill="#000000" font-size="12">+     CreatedAtUtc : datetime2 NOT NULL</text>
+
+  <!-- Table 5: BlockedUsers -->
+  <rect x="620" y="600" width="440" height="160" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+  <line x1="620" y1="630" x2="1060" y2="630" stroke="#000000" stroke-width="1.5"/>
+  <text x="840" y="620" fill="#000000" font-family="Arial, sans-serif" font-size="14" font-weight="bold" text-anchor="middle">BlockedUsers</text>
+  <text x="632" y="652" fill="#000000" font-size="12">+ PK  Id : uniqueidentifier NOT NULL</text>
+  <text x="632" y="672" fill="#000000" font-size="12">+ FK  BlockerUserId : uniqueidentifier NOT NULL</text>
+  <text x="632" y="692" fill="#000000" font-size="12">+ FK  BlockedTargetUserId : uniqueidentifier NOT NULL</text>
+  <text x="632" y="712" fill="#000000" font-size="12">+     Reason : nvarchar(300) NOT NULL</text>
+  <text x="632" y="732" fill="#000000" font-size="12">+     CreatedAtUtc : datetime2 NOT NULL</text>
+
+  <!-- Black Relationships with Crow's Foot -->
+  <!-- Users (1) <-> (1) UserProfiles -->
+  <line x1="450" y1="140" x2="620" y2="140" stroke="#000000" stroke-width="1.5"/>
+  <line x1="462" y1="133" x2="462" y2="147" stroke="#000000" stroke-width="1.5"/>
+  <line x1="608" y1="133" x2="608" y2="147" stroke="#000000" stroke-width="1.5"/>
+  <text x="535" y="132" fill="#000000" font-family="Arial, sans-serif" font-size="11" text-anchor="middle">1 : 1</text>
+
+  <!-- Users (1) -> (N) RefreshTokens -->
+  <line x1="255" y1="340" x2="255" y2="410" stroke="#000000" stroke-width="1.5"/>
+  <line x1="248" y1="350" x2="262" y2="350" stroke="#000000" stroke-width="1.5"/>
+  <line x1="255" y1="396" x2="247" y2="410" stroke="#000000" stroke-width="1.5"/>
+  <line x1="255" y1="396" x2="263" y2="410" stroke="#000000" stroke-width="1.5"/>
+  <text x="278" y="380" fill="#000000" font-family="Arial, sans-serif" font-size="11">1 : N</text>
+
+  <!-- Users (1) -> (N) VerificationTokens -->
+  <polyline points="60,260 25,260 25,720 60,720" fill="none" stroke="#000000" stroke-width="1.5"/>
+  <line x1="48" y1="253" x2="48" y2="267" stroke="#000000" stroke-width="1.5"/>
+  <line x1="46" y1="720" x2="60" y2="712" stroke="#000000" stroke-width="1.5"/>
+  <line x1="46" y1="720" x2="60" y2="728" stroke="#000000" stroke-width="1.5"/>
+  <text x="38" y="615" fill="#000000" font-family="Arial, sans-serif" font-size="11">1 : N</text>
+
+  <!-- Users (1) -> (N) BlockedUsers -->
+  <polyline points="450,300 535,300 535,680 620,680" fill="none" stroke="#000000" stroke-width="1.5"/>
+  <line x1="462" y1="293" x2="462" y2="307" stroke="#000000" stroke-width="1.5"/>
+  <line x1="606" y1="680" x2="620" y2="672" stroke="#000000" stroke-width="1.5"/>
+  <line x1="606" y1="680" x2="620" y2="688" stroke="#000000" stroke-width="1.5"/>
+  <text x="562" y="670" fill="#000000" font-family="Arial, sans-serif" font-size="11">1 : N</text>
+</svg>

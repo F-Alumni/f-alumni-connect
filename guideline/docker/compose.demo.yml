@@ -1,0 +1,168 @@
+# ==============================================================================
+# FPT Alumni Connect — Guideline Demonstration Docker Compose File
+# NOTE: This file is for demonstrating integrated local demo services.
+# Production service compositions belong in the dedicated `fpt-alumni-infra` repo.
+# ==============================================================================
+
+name: fpt-alumni-guideline-demo
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. SQL Server 2022 Database Instance (Shared Host Instance for Microservices)
+  # ----------------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: f-alumni-demo-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}"
+    ports:
+      - "${SQL_SERVER_HOST_PORT:-14333}:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 2. Apache Kafka Broker (KRaft Mode — Lightweight, No Zookeeper Required)
+  # ----------------------------------------------------------------------------
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: f-alumni-demo-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:${KAFKA_HOST_PORT:-29092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: 4L622nShTUiBen8qcEvpkg
+    ports:
+      - "${KAFKA_CONTAINER_PORT:-9092}:9092"
+      - "${KAFKA_HOST_PORT:-29092}:29092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 3. User Service gRPC Server (Internal Profile Lookup via HTTP/2 Protobuf)
+  # ----------------------------------------------------------------------------
+  user-grpc-server:
+    build:
+      context: ..
+      dockerfile: examples/grpc-demo/src/UserGrpcServer/Dockerfile
+    container_name: f-alumni-demo-user-grpc
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:50051"
+      Kestrel__Endpoints__gRpc__Url: "http://+:50051"
+      Kestrel__Endpoints__gRpc__Protocols: "Http2"
+    ports:
+      - "${USER_GRPC_PORT:-50051}:50051"
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 4. Chat REST Service (Synchronous gRPC Client to User Service)
+  # ----------------------------------------------------------------------------
+  chat-service:
+    build:
+      context: ..
+      dockerfile: examples/grpc-demo/src/ChatRestApi/Dockerfile
+    container_name: f-alumni-demo-chat-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5002"
+      GrpcServices__UserProfile__Address: "http://user-grpc-server:50051"
+    ports:
+      - "${CHAT_API_PORT:-5002}:5002"
+    depends_on:
+      user-grpc-server:
+        condition: service_started
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 5. Notification Background Worker (Asynchronous Kafka Consumer)
+  # ----------------------------------------------------------------------------
+  notification-worker:
+    build:
+      context: ..
+      dockerfile: examples/demo-worker/src/NotificationWorker/Dockerfile
+    container_name: f-alumni-demo-notification-worker
+    restart: unless-stopped
+    environment:
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__Topic: "user.registered.v1"
+      Kafka__GroupId: "notification-worker.user-registered-group"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 6. YARP API Gateway (Central Entrypoint Routing /api/chat/*, /api/v1/admin/*)
+  # ----------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: examples/gateway-demo/src/ApiGateway/Dockerfile
+    container_name: f-alumni-demo-api-gateway
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5000"
+      ReverseProxy__Clusters__chat-cluster__Destinations__chat-service__Address: "http://chat-service:5002"
+      ReverseProxy__Clusters__admin-cluster__Destinations__admin-service__Address: "http://admin-service:5005"
+    ports:
+      - "${GATEWAY_PORT:-5000}:5000"
+    depends_on:
+      chat-service:
+        condition: service_started
+      admin-service:
+        condition: service_started
+    networks:
+      - f-alumni-demo-net
+
+  # ----------------------------------------------------------------------------
+  # 7. Admin Service (Management, Moderation, Audit Log & Announcements)
+  # ----------------------------------------------------------------------------
+  admin-service:
+    build:
+      context: ../../f-alumni-admin-service
+      dockerfile: Dockerfile
+    container_name: f-alumni-demo-admin-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5005"
+      DatabaseProvider: "InMemory"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Services__UserService__Url: "http://user-grpc-server:5001"
+    ports:
+      - "${ADMIN_API_PORT:-5005}:5005"
+    networks:
+      - f-alumni-demo-net
+
+networks:
+  f-alumni-demo-net:
+    driver: bridge

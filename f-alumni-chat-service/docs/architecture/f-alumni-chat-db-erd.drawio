@@ -1,0 +1,47 @@
+<mxfile host="app.diagrams.net" modified="2026-10-29T09:00:00.000Z" agent="Draw.io" version="24.0.0" type="device">
+  <diagram id="chat-service-erd" name="FAlumni_Chat_Db">
+    <mxGraphModel dx="1422" dy="798" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="ERD: FAlumni_Chat_Db (Chat Service — Zero Cross-DB FK)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="20" width="600" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Table 1: Conversations -->
+        <mxCell id="tbl_conv" value="Conversations" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="400" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_conv_cols" value="+ PK  Id : uniqueidentifier NOT NULL&#xa;+     Title : nvarchar(200) NOT NULL&#xa;+     IsGroup : bit NOT NULL&#xa;+     CreatedByUserId : uniqueidentifier NOT NULL&#xa;+     CreatedAtUtc : datetime2 NOT NULL&#xa;+     LastMessageAtUtc : datetime2 NOT NULL" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=6;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontFamily=Courier New;fontSize=12;fontColor=#000000;" vertex="1" parent="tbl_conv">
+          <mxGeometry y="30" width="400" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- Table 2: ConversationParticipants -->
+        <mxCell id="tbl_part" value="ConversationParticipants" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="600" y="80" width="440" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_part_cols" value="+ PK     Id : uniqueidentifier NOT NULL&#xa;+ FK,UK  ConversationId : uniqueidentifier NOT NULL&#xa;+ UK     UserId : uniqueidentifier NOT NULL (Scalar)&#xa;+        DisplayName : nvarchar(max) NOT NULL&#xa;+        AvatarUrl : nvarchar(max) NOT NULL&#xa;+        IsMuted : bit NOT NULL&#xa;+        IsHidden : bit NOT NULL&#xa;+        JoinedAtUtc : datetime2 NOT NULL&#xa;+        LastReadAtUtc : datetime2 NULL" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=6;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontFamily=Courier New;fontSize=12;fontColor=#000000;" vertex="1" parent="tbl_part">
+          <mxGeometry y="30" width="440" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Table 3: Messages -->
+        <mxCell id="tbl_msg" value="Messages (ChatMessage)" style="swimlane;fontStyle=1;align=center;verticalAlign=top;childLayout=stackLayout;horizontal=1;startSize=30;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=0;marginBottom=0;fillColor=#ffffff;strokeColor=#000000;fontColor=#000000;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="600" y="380" width="440" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="tbl_msg_cols" value="+ PK  Id : uniqueidentifier NOT NULL&#xa;+ FK  ConversationId : uniqueidentifier NOT NULL&#xa;+     SenderId : uniqueidentifier NOT NULL (Scalar)&#xa;+     Content : nvarchar(4000) NOT NULL&#xa;+     AttachmentUrl : nvarchar(500) NULL&#xa;+     AttachmentType : nvarchar(100) NULL&#xa;+     Status : nvarchar(30) NOT NULL&#xa;+     CreatedAtUtc : datetime2 NOT NULL&#xa;+     ReadAtUtc : datetime2 NULL" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=10;spacingRight=10;spacingTop=6;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;fontFamily=Courier New;fontSize=12;fontColor=#000000;" vertex="1" parent="tbl_msg">
+          <mxGeometry y="30" width="440" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- Relationships (Pure Black Crow's Foot) -->
+        <mxCell id="rel_conv_part" value="1:N" style="edgeStyle=entityRelationEdgeStyle;fontSize=11;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="tbl_conv" target="tbl_part">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rel_conv_msg" value="1:N" style="edgeStyle=entityRelationEdgeStyle;fontSize=11;html=1;endArrow=ERzeroToMany;startArrow=ERmandOne;strokeColor=#000000;fontColor=#000000;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="tbl_conv" target="tbl_msg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

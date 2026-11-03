@@ -1,0 +1,246 @@
+# ==============================================================================
+# FPT Alumni Connect — Unified Microservices Orchestration (PRN232 Final Project)
+# Backend Services: User (5001/50051), Chat (5002), Forum (5003), AI (5004), Admin (5005), Gateway (5000)
+# Infrastructure: SQL Server 2022 (14333), Apache Kafka (9092, 29092)
+# ==============================================================================
+
+name: f-alumni-connect
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. SQL Server 2022 (Central Database Instance with Isolated Databases)
+  # ----------------------------------------------------------------------------
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: falumni-sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}"
+    ports:
+      - "${SQL_SERVER_HOST_PORT:-14333}:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!}\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 2. Apache Kafka (KRaft Mode - Lightweight Broker)
+  # ----------------------------------------------------------------------------
+  kafka:
+    image: apache/kafka:3.8.0
+    container_name: falumni-kafka
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:${KAFKA_HOST_PORT:-29092}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: 4L622nShTUiBen8qcEvpkg
+    ports:
+      - "${KAFKA_CONTAINER_PORT:-9092}:9092"
+      - "${KAFKA_HOST_PORT:-29092}:29092"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 3. User Service (Identity, Profiles, Auth, internal moderation endpoints)
+  # ----------------------------------------------------------------------------
+  user-service:
+    build:
+      context: ./f-alumni-user-service
+      dockerfile: Dockerfile
+    container_name: falumni-user-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5001;http://+:50051"
+      Kestrel__Endpoints__Http__Url: "http://+:5001"
+      Kestrel__Endpoints__Http__Protocols: "Http1"
+      Kestrel__Endpoints__gRpc__Url: "http://+:50051"
+      Kestrel__Endpoints__gRpc__Protocols: "Http2"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_User_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      Kafka__BootstrapServers: "kafka:9092"
+    ports:
+      - "5001:5001"
+      - "50051:50051"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 4. Chat Service (Direct & Group Messaging, SignalR Hub, gRPC Profile Client)
+  # ----------------------------------------------------------------------------
+  chat-service:
+    build:
+      context: ./f-alumni-chat-service
+      dockerfile: Dockerfile
+    container_name: falumni-chat-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5002"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_Chat_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      GrpcServices__UserProfile__Address: "http://user-service:50051"
+      Kafka__BootstrapServers: "kafka:9092"
+    ports:
+      - "5002:5002"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 5. Forum Service (Discussions, Posts, Comments, Reactions, Events: port 5003)
+  # ----------------------------------------------------------------------------
+  forum-service:
+    build:
+      context: ./F-Alumni-Forum-Service
+      dockerfile: Dockerfile
+    container_name: falumni-forum-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5003"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_Forum_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      Kafka__BootstrapServers: "kafka:9092"
+    ports:
+      - "5003:5003"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 6. AI Service (RAG Knowledge, Advisory, Mentor Recommendation: port 5004)
+  # ----------------------------------------------------------------------------
+  ai-service:
+    build:
+      context: ./F-Alumni-AI-Service
+      dockerfile: Dockerfile
+    container_name: falumni-ai-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5004"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_AI_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      Kafka__BootstrapServers: "kafka:9092"
+      Gemini__ApiKey: "${GEMINI_API_KEY:-}"
+      Gemini__Model: "${GEMINI_MODEL:-gemini-1.5-flash}"
+    ports:
+      - "5004:5004"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 7. Admin Service (Dashboard, User Moderation, Audit Log, Announcements)
+  # ----------------------------------------------------------------------------
+  admin-service:
+    build:
+      context: ./f-alumni-admin-service
+      dockerfile: Dockerfile
+    container_name: falumni-admin-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5005"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_Admin_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      Services__UserService__Url: "http://user-service:5001"
+    ports:
+      - "5005:5005"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 8. YARP API Gateway (Reverse Proxy Central Entrypoint: port 5000)
+  # ----------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: ./guideline
+      dockerfile: examples/gateway-demo/src/ApiGateway/Dockerfile
+    container_name: falumni-api-gateway
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5000"
+      ReverseProxy__Clusters__user-cluster__Destinations__user-service__Address: "http://user-service:5001"
+      ReverseProxy__Clusters__chat-cluster__Destinations__chat-service__Address: "http://chat-service:5002"
+      ReverseProxy__Clusters__forum-cluster__Destinations__forum-service__Address: "http://forum-service:5003"
+      ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address: "http://ai-service:5004"
+      ReverseProxy__Clusters__admin-cluster__Destinations__admin-service__Address: "http://admin-service:5005"
+    ports:
+      - "5000:5000"
+    depends_on:
+      user-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      forum-service:
+        condition: service_started
+      ai-service:
+        condition: service_started
+      admin-service:
+        condition: service_started
+    networks:
+      - falumni-network
+
+networks:
+  falumni-network:
+    driver: bridge

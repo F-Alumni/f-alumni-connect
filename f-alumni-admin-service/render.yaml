@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: f-alumni-admin-service
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:5005
+      - key: DatabaseProvider
+        value: "InMemory"
+      - key: UseInMemoryDatabase
+        value: "true"
+      - key: Jwt__Key
+        value: "falumni-production-shared-jwt-secret-key-2026-min-32-bytes"
+      - key: Jwt__Issuer
+        value: "https://identity.falumni.local"
+      - key: Jwt__Audience
+        value: "falumni-services"
+      - key: Services__UserService__Url
+        value: "https://f-alumni-user-service.onrender.com"
+      - key: Services__ForumService__Url
+        value: "https://f-alumni-forum-service.onrender.com"

@@ -1,0 +1,23 @@
+﻿{
+    "manifestVersion":  "1.0",
+    "guidelineCommit":  "4abc47781f6fd9c3cc2733331216c94b0762e408",
+    "importedAtUtc":  "2026-11-02T10:26:43Z",
+    "guidelineRepo":  "fpt-alumni-guideline",
+    "contracts":  {
+                      "events/post-created/v1":  {
+                                                     "type":  "KafkaEvent",
+                                                     "version":  "1.0",
+                                                     "description":  "Hop dong su kien mien Kafka post.created.v1 (Forum Service -\u003e AI Service / Worker)",
+                                                     "files":  [
+                                                                   {
+                                                                       "relativePath":  "events/EventEnvelope.cs",
+                                                                       "sha256":  "DBC30CEC418316D63A1FE4D5DBB64A2682CE1484402A04B75DAC8F0B4AF5A397"
+                                                                   },
+                                                                   {
+                                                                       "relativePath":  "events/PostCreatedEventV1.cs",
+                                                                       "sha256":  "F7B2D7FD22A8DDCB9C23EF3C4291601B874466FE23BCF188B7B8FBC688325923"
+                                                                   }
+                                                               ]
+                                                 }
+                  }
+}
