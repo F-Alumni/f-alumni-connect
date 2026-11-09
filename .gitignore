@@ -37,3 +37,7 @@ ehthumbs.db
 
 ## Backups
 .subrepos_git_backup/
+
+## Frontend & Mobile Separate Repos
+-F-Alumni---Web/
+F-Alumni-Mobile/

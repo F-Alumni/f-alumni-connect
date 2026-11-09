@@ -36,7 +36,7 @@ public class DashboardService : IDashboardService
     {
         _logger.LogInformation("Compiling administrative dashboard summary metrics.");
 
-        // 1. Fetch user metrics from User Service
+        // 1. Fetch user metrics from User Service (HTTP calls can safely run concurrently)
         var totalUsersTask = _userServiceClient.GetUsersDirectoryAsync(
             new UserFilterQuery { PageSize = 1 }, bearerToken, cancellationToken);
         var activeUsersTask = _userServiceClient.GetUsersDirectoryAsync(
@@ -44,22 +44,15 @@ public class DashboardService : IDashboardService
         var suspendedUsersTask = _userServiceClient.GetUsersDirectoryAsync(
             new UserFilterQuery { Status = "Suspended", PageSize = 1 }, bearerToken, cancellationToken);
 
-        // 2. Fetch admin repository metrics
-        var pendingReportsTask = _reportRepository.GetPendingCountAsync(cancellationToken);
-        var publishedAnnouncementsTask = _announcementRepository.GetPublishedCountAsync(cancellationToken);
-        var totalAuditLogsTask = _auditLogRepository.GetTotalCountAsync(cancellationToken);
-        var recentLogsTask = _auditLogRepository.GetRecentActionsAsync(10, cancellationToken);
+        await Task.WhenAll(totalUsersTask, activeUsersTask, suspendedUsersTask);
 
-        await Task.WhenAll(
-            totalUsersTask,
-            activeUsersTask,
-            suspendedUsersTask,
-            pendingReportsTask,
-            publishedAnnouncementsTask,
-            totalAuditLogsTask,
-            recentLogsTask);
+        // 2. Fetch admin repository metrics sequentially to avoid concurrent operations on the same EF Core DbContext instance
+        var pendingReports = await _reportRepository.GetPendingCountAsync(cancellationToken);
+        var publishedAnnouncements = await _announcementRepository.GetPublishedCountAsync(cancellationToken);
+        var totalAuditLogs = await _auditLogRepository.GetTotalCountAsync(cancellationToken);
+        var recentLogsRaw = await _auditLogRepository.GetRecentActionsAsync(10, cancellationToken);
 
-        var recentLogs = (await recentLogsTask).Select(l => new AuditLogResponse
+        var recentLogs = recentLogsRaw.Select(l => new AuditLogResponse
         {
             Id = l.Id,
             AdminUserId = l.AdminUserId,
@@ -78,9 +71,9 @@ public class DashboardService : IDashboardService
             TotalUsers = (await totalUsersTask).TotalCount,
             ActiveUsers = (await activeUsersTask).TotalCount,
             SuspendedUsers = (await suspendedUsersTask).TotalCount,
-            PendingReports = await pendingReportsTask,
-            PublishedAnnouncements = await publishedAnnouncementsTask,
-            TotalAuditLogsCount = await totalAuditLogsTask,
+            PendingReports = pendingReports,
+            PublishedAnnouncements = publishedAnnouncements,
+            TotalAuditLogsCount = totalAuditLogs,
             RecentActivityFeed = recentLogs,
             Timestamp = DateTime.UtcNow
         };

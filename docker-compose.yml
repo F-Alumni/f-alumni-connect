@@ -192,6 +192,8 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
       ASPNETCORE_URLS: "http://+:5005"
+      Kestrel__Endpoints__Http__Url: "http://+:5005"
+      Kestrel__Endpoints__Http__Protocols: "Http1"
       DatabaseProvider: "SqlServer"
       ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_Admin_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
       Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
