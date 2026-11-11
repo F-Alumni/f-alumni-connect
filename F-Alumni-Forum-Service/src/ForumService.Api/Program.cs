@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using ForumService.Api.Data;
 using ForumService.Api.Hubs;
 using ForumService.Api.Middlewares;
+using ForumService.Api.Serialization;
 using ForumService.Services.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,8 +15,16 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // 2. Add Framework Services
-builder.Services.AddControllers();
-builder.Services.AddSignalR();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeJsonConverter());
+    });
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new VietnamDateTimeJsonConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
