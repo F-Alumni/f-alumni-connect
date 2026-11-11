@@ -15,6 +15,7 @@ builder.Logging.AddDebug();
 
 // 2. Add Framework Services (Controllers, gRPC, CORS, OpenAPI, HealthChecks)
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddGrpc();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
