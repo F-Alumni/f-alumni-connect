@@ -27,30 +27,54 @@ public class RagStartupWorker : BackgroundService
         // Wait 1 second after startup
         await Task.Delay(1000, stoppingToken);
 
+        await EnsureDocumentsIngestedAsync(stoppingToken);
+    }
+
+    /// <summary>
+    /// Ensures all .docx documents from the configured RAG directory are ingested into the database,
+    /// even if seed data or Kafka forum posts already exist.
+    /// </summary>
+    public async Task EnsureDocumentsIngestedAsync(CancellationToken cancellationToken = default)
+    {
         try
         {
+            var resolvedDir = ResolveRagDirectory();
+            if (string.IsNullOrWhiteSpace(resolvedDir))
+            {
+                _logger.LogWarning("Không tìm thấy thư mục tài liệu RAG hợp lệ. Vui lòng kiểm tra cấu hình 'Rag:DataDirectory'.");
+                return;
+            }
+
             using var scope = _serviceProvider.CreateScope();
             var ragRepo = scope.ServiceProvider.GetRequiredService<IRagRepository>();
-            var count = await ragRepo.GetChunkCountAsync(stoppingToken);
+            var docxFiles = Directory.GetFiles(resolvedDir, "*.docx", SearchOption.AllDirectories);
 
-            var resolvedDir = ResolveRagDirectory();
-            if (count == 0 && !string.IsNullOrWhiteSpace(resolvedDir))
+            var hasMissingFiles = false;
+            foreach (var file in docxFiles)
             {
-                _logger.LogInformation("Cơ sở dữ liệu tri thức RAG đang trống. Bắt đầu tự động nạp từ: {Dir}", resolvedDir);
-                var ingestionService = scope.ServiceProvider.GetRequiredService<IRagIngestionService>();
-                var res = await ingestionService.IngestDocumentsFromDirectoryAsync(resolvedDir, forceReindex: false, stoppingToken);
-                _logger.LogInformation("Tự động nạp hoàn tất: {Msg}", res.Message);
+                if (await ragRepo.GetDocumentByPathAsync(file, cancellationToken) is null)
+                {
+                    hasMissingFiles = true;
+                    break;
+                }
             }
-            else if (count > 0)
+
+            if (hasMissingFiles)
             {
-                _logger.LogInformation("Hệ thống RAG đã có sẵn {Count} đoạn tri thức.", count);
+                _logger.LogInformation("Phát hiện tài liệu RAG chưa được nạp từ: {Dir}. Bắt đầu tự động nạp...", resolvedDir);
+                var ingestionService = scope.ServiceProvider.GetRequiredService<IRagIngestionService>();
+                var res = await ingestionService.IngestDocumentsFromDirectoryAsync(resolvedDir, forceReindex: false, cancellationToken);
+                var totalChunks = await ragRepo.GetChunkCountAsync(cancellationToken);
+                _logger.LogInformation("Tự động nạp hoàn tất: {Msg} (Tổng số đoạn tri thức hiện có: {TotalChunks})", res.Message, totalChunks);
             }
             else
             {
-                _logger.LogWarning("Không tìm thấy thư mục tài liệu RAG hợp lệ. Vui lòng kiểm tra cấu hình 'Rag:DataDirectory'.");
+                var totalChunks = await ragRepo.GetChunkCountAsync(cancellationToken);
+                _logger.LogInformation("Hệ thống RAG đã có đầy đủ {FileCount} tài liệu từ {Dir} (Tổng {TotalChunks} đoạn tri thức).",
+                    docxFiles.Length, resolvedDir, totalChunks);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning("Không thể tự động nạp dữ liệu RAG khi khởi động: {Message}", ex.Message);
         }
@@ -58,8 +82,8 @@ public class RagStartupWorker : BackgroundService
 
     private string? ResolveRagDirectory()
     {
-        var configured = _configuration["Rag:DataDirectory"] 
-            ?? _configuration["Rag:DefaultDirectory"] 
+        var configured = _configuration["Rag:DataDirectory"]
+            ?? _configuration["Rag:DefaultDirectory"]
             ?? "data/rag";
 
         var candidates = new List<string>();
@@ -78,9 +102,10 @@ public class RagStartupWorker : BackgroundService
 
         foreach (var dir in candidates)
         {
-            if (Directory.Exists(dir) && Directory.GetFiles(dir, "*.docx", SearchOption.AllDirectories).Length > 0)
+            var normalized = Path.GetFullPath(dir);
+            if (Directory.Exists(normalized) && Directory.GetFiles(normalized, "*.docx", SearchOption.AllDirectories).Length > 0)
             {
-                return dir;
+                return normalized;
             }
         }
 

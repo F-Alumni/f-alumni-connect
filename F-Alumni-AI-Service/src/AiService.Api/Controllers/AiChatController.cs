@@ -79,7 +79,11 @@ public class AiChatController : ControllerBase
         {
             var baseDirCandidate = Path.Combine(AppContext.BaseDirectory, targetDir);
             var currentDirCandidate = Path.Combine(Directory.GetCurrentDirectory(), targetDir);
-            targetDir = Directory.Exists(baseDirCandidate) ? baseDirCandidate : currentDirCandidate;
+            targetDir = Path.GetFullPath(Directory.Exists(baseDirCandidate) ? baseDirCandidate : currentDirCandidate);
+        }
+        else
+        {
+            targetDir = Path.GetFullPath(targetDir);
         }
 
         var forceReindex = request?.ForceReindex ?? false;

@@ -259,9 +259,10 @@ public class AiServiceTests
 
         var searchService = new RagSearchService(repo, NullLogger<RagSearchService>.Instance);
         
-        // Test query about tuition
-        var tuitionResults = await searchService.SearchRelevantChunksAsync("Học phí kỳ chuyên ngành tại Hola bao nhiêu?");
+        // Test query about tuition at Hola
+        var tuitionResults = await searchService.SearchRelevantChunksAsync("Học phí chuyên ngành tại Hola là bao nhiêu?");
         Assert.NotEmpty(tuitionResults);
+        Assert.Contains("31,600,000", tuitionResults[0].Chunk.Content);
 
         // Test query about BIT_SE curriculum
         var seResults = await searchService.SearchRelevantChunksAsync("Kỹ thuật phần mềm BIT_SE đào tạo những gì?");
@@ -270,6 +271,196 @@ public class AiServiceTests
         // Test query about first year subjects Vovinam
         var vovinamResults = await searchService.SearchRelevantChunksAsync("Môn Vovinam có bắt buộc không?");
         Assert.NotEmpty(vovinamResults);
+
+        // Test out-of-scope query across ALL 12 real .docx files should return empty so DVSV/website fallback triggers
+        var unrelatedResults = await searchService.SearchRelevantChunksAsync("Giá vé máy bay đi Nhật tháng sau là bao nhiêu?");
+        Assert.Empty(unrelatedResults);
+    }
+
+    [Fact]
+    public async Task AiChatService_Enforces_Max_255_Characters_When_Chunk_Is_Long()
+    {
+        var repo = new FakeRagRepository();
+        var doc = new RagDocument
+        {
+            Title = "Quy chế đào tạo",
+            SourcePath = "reg.docx",
+            DocumentType = "Regulations",
+            Campus = "All"
+        };
+        await repo.AddDocumentAsync(doc);
+
+        var longText = "## Quy định thực tập OJT\n" + string.Join(" ", Enumerable.Repeat("Sinh viên cần hoàn thành đầy đủ học phần nền tảng trước kỳ OJT tại doanh nghiệp đối tác.", 6));
+        await repo.AddChunksAsync(new[]
+        {
+            new RagChunk
+            {
+                DocumentId = doc.Id,
+                Document = doc,
+                ChunkIdentifier = "ojt_long",
+                Section = "OJT",
+                Content = longText,
+                Keywords = "ojt thực tập doanh nghiệp"
+            }
+        });
+
+        var searchService = new RagSearchService(repo, NullLogger<RagSearchService>.Instance);
+        var chatService = new AiChatService(
+            repo,
+            searchService,
+            new System.Net.Http.HttpClient().AsFactory(),
+            new ConfigurationBuilder().Build(),
+            NullLogger<AiChatService>.Instance);
+
+        var response = await chatService.AskAsync(new AiChatRequest
+        {
+            Question = "Quy định thực tập OJT là gì?"
+        }, Guid.NewGuid());
+
+        Assert.InRange(response.Answer.Length, 1, AiChatService.MaxAnswerCharacters);
+        Assert.EndsWith("...", response.Answer);
+    }
+
+    [Fact]
+    public async Task AiChatService_When_No_Material_Match_Instructs_DVSV_And_Website()
+    {
+        var repo = new FakeRagRepository();
+        var doc = new RagDocument
+        {
+            Title = "Các môn năm nhất",
+            SourcePath = "first-year.docx",
+            DocumentType = "FirstYearSubjects",
+            Campus = "All"
+        };
+        await repo.AddDocumentAsync(doc);
+        await repo.AddChunksAsync(new[]
+        {
+            new RagChunk
+            {
+                DocumentId = doc.Id,
+                Document = doc,
+                ChunkIdentifier = "vovinam_01",
+                Section = "Vovinam",
+                Content = "Môn học Vovinam là môn thể chất bắt buộc, không được miễn trừ nếu không có lý do y tế.",
+                Keywords = "vovinam thể chất"
+            }
+        });
+
+        var searchService = new RagSearchService(repo, NullLogger<RagSearchService>.Instance);
+        var chatService = new AiChatService(
+            repo,
+            searchService,
+            new System.Net.Http.HttpClient().AsFactory(),
+            new ConfigurationBuilder().Build(),
+            NullLogger<AiChatService>.Instance);
+
+        var response = await chatService.AskAsync(new AiChatRequest
+        {
+            Question = "Hôm nay trời có mưa không?"
+        }, Guid.NewGuid());
+
+        Assert.Empty(response.Citations);
+        Assert.InRange(response.Answer.Length, 1, AiChatService.MaxAnswerCharacters);
+        Assert.Contains("DVSV", response.Answer);
+        Assert.Contains("daihoc.fpt.edu.vn", response.Answer);
+    }
+
+    [Fact]
+    public async Task AiChatService_GeminiPrompt_Instructs_255_Char_Limit_And_DVSV_Fallback()
+    {
+        var repo = new FakeRagRepository();
+        var doc = new RagDocument
+        {
+            Title = "Học phí FPTU",
+            SourcePath = "tuition.docx",
+            DocumentType = "Tuition",
+            Campus = "All"
+        };
+        await repo.AddDocumentAsync(doc);
+        await repo.AddChunksAsync(new[]
+        {
+            new RagChunk
+            {
+                DocumentId = doc.Id,
+                Document = doc,
+                ChunkIdentifier = "tuition_1",
+                Section = "Học phí",
+                Content = "Học phí chuyên ngành là 28,700,000 VNĐ mỗi kỳ.",
+                Keywords = "học phí"
+            }
+        });
+
+        var longGeminiReply = string.Join(" ", Enumerable.Repeat("Thông tin học phí kỳ chuyên ngành tại FPTU là 28,700,000 VNĐ mỗi kỳ áp dụng cho sinh viên chính quy.", 5));
+        string? capturedPrompt = null;
+
+        var handler = new StubHttpMessageHandler(reqBody =>
+        {
+            capturedPrompt = reqBody;
+            var payload = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                candidates = new[]
+                {
+                    new
+                    {
+                        content = new
+                        {
+                            parts = new[] { new { text = longGeminiReply } }
+                        }
+                    }
+                }
+            });
+            return new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new System.Net.Http.StringContent(payload, System.Text.Encoding.UTF8, "application/json")
+            };
+        });
+
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Gemini:ApiKey"] = "test-fake-key",
+                ["Gemini:Model"] = "gemini-1.5-flash"
+            })
+            .Build();
+
+        var searchService = new RagSearchService(repo, NullLogger<RagSearchService>.Instance);
+        var chatService = new AiChatService(
+            repo,
+            searchService,
+            new System.Net.Http.HttpClient(handler).AsFactory(),
+            config,
+            NullLogger<AiChatService>.Instance);
+
+        var response = await chatService.AskAsync(new AiChatRequest
+        {
+            Question = "Học phí bao nhiêu?"
+        }, Guid.NewGuid());
+
+        Assert.NotNull(capturedPrompt);
+        using var parsedReq = System.Text.Json.JsonDocument.Parse(capturedPrompt);
+        var sentPromptText = parsedReq.RootElement
+            .GetProperty("contents")[0]
+            .GetProperty("parts")[0]
+            .GetProperty("text")
+            .GetString();
+
+        Assert.NotNull(sentPromptText);
+        Assert.Contains("255 KÝ TỰ", sentPromptText);
+        Assert.Contains("DVSV", sentPromptText);
+        Assert.Contains("daihoc.fpt.edu.vn", sentPromptText);
+        Assert.InRange(response.Answer.Length, 1, AiChatService.MaxAnswerCharacters);
+    }
+
+    private sealed class StubHttpMessageHandler : System.Net.Http.HttpMessageHandler
+    {
+        private readonly Func<string?, System.Net.Http.HttpResponseMessage> _responder;
+        public StubHttpMessageHandler(Func<string?, System.Net.Http.HttpResponseMessage> responder) => _responder = responder;
+
+        protected override async Task<System.Net.Http.HttpResponseMessage> SendAsync(System.Net.Http.HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            var body = request.Content != null ? await request.Content.ReadAsStringAsync(cancellationToken) : null;
+            return _responder(body);
+        }
     }
 }
 

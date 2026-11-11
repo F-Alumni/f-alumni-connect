@@ -13,6 +13,11 @@ namespace AiService.Services.Implementations;
 
 public class AiChatService : IAiChatService
 {
+    public const int MaxAnswerCharacters = 255;
+
+    private const string NoMaterialFallbackMessage =
+        "Hiện chưa có thông tin trong tài liệu. Sinh viên vui lòng gọi hoặc email cho phòng DVSV, hoặc truy cập daihoc.fpt.edu.vn để tìm kiếm thông tin.";
+
     private readonly IRagRepository _ragRepository;
     private readonly IRagSearchService _ragSearchService;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -31,8 +36,10 @@ public class AiChatService : IAiChatService
         _ragSearchService = ragSearchService;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
-        _geminiApiKey = configuration["Gemini:ApiKey"]
-            ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        var configuredGeminiKey = configuration["Gemini:ApiKey"];
+        _geminiApiKey = !string.IsNullOrWhiteSpace(configuredGeminiKey)
+            ? configuredGeminiKey
+            : Environment.GetEnvironmentVariable("GEMINI_API_KEY");
         _geminiModel = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
     }
 
@@ -173,11 +180,12 @@ public class AiChatService : IAiChatService
                 sbContext.AppendLine();
             }
 
-            var systemInstruction = "Bạn là FPT Alumni Assistant chuyên nghiệp. Quy tắc bắt buộc: " +
-                "1. Trả lời CHÍNH XÁC, ĐI THẲNG VÀO TRỌNG TÂM, KHÔNG LAN MAN, KHÔNG BỊA ĐẶT. " +
-                "2. CHỈ sử dụng thông tin trong NGỮ CẢNH TƯ LIỆU được cung cấp bên dưới. " +
-                "3. Nêu rõ các số liệu cụ thể (học phí, tín chỉ, mã môn, quy định) nếu có. " +
-                "4. Cuối câu trả lời, hãy chỉ rõ nguồn tham khảo đã trích dẫn.";
+            var systemInstruction =
+                "Bạn là FPT Alumni Assistant. Quy tắc bắt buộc: " +
+                $"1. Trả lời CỰC KỲ NGẮN GỌN, ĐÚNG TRỌNG TÂM, TỐI ĐA {MaxAnswerCharacters} KÝ TỰ (tính cả khoảng trắng và dấu câu) cho mỗi lần trả lời. " +
+                "2. CHỈ sử dụng thông tin trong NGỮ CẢNH TƯ LIỆU bên dưới, tuyệt đối KHÔNG bịa đặt hay suy diễn. " +
+                "3. Nêu thẳng số liệu/quy định cốt lõi, không chào hỏi rườm rà hay liệt kê nguồn dài dòng trong câu trả lời. " +
+                $"4. Nếu tư liệu không có câu trả lời cho câu hỏi, chỉ trả lời đúng: \"{NoMaterialFallbackMessage}\"";
 
             var promptText = $"{systemInstruction}\n\n{sbContext}\n\nCÂU HỎI CỦA NGƯỜI DÙNG: {question}";
 
@@ -196,7 +204,7 @@ public class AiChatService : IAiChatService
                 generationConfig = new
                 {
                     temperature = 0.2,
-                    maxOutputTokens = 800
+                    maxOutputTokens = 200
                 }
             };
 
@@ -218,7 +226,7 @@ public class AiChatService : IAiChatService
 
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        return text.Trim();
+                        return EnforceMaxLength(text, MaxAnswerCharacters);
                     }
                 }
             }
@@ -240,35 +248,59 @@ public class AiChatService : IAiChatService
     {
         if (chunks.Count == 0)
         {
-            return "Chào bạn, hiện tại cơ sở dữ liệu FPT Alumni Connect chưa có tài liệu hoặc bài viết nào trực tiếp đề cập đến nội dung bạn hỏi. Bạn có thể đăng câu hỏi lên Diễn đàn (Forum) để các bạn sinh viên và cựu sinh viên khác giải đáp nhé!";
+            return NoMaterialFallbackMessage;
         }
 
-        var sb = new StringBuilder();
-        var primaryChunk = chunks[0].Chunk;
-
-        sb.AppendLine($"Dựa trên tài liệu quy chuẩn của Đại học FPT (**{primaryChunk.Document?.Title ?? "FPTU Documents"}** - *{primaryChunk.Section}*), thông tin cụ thể như sau:\n");
-
-        var cleanContent = primaryChunk.Content.Trim();
-        if (cleanContent.Length > 700)
+        var primaryChunk = chunks
+            .FirstOrDefault(c => !c.Chunk.Section.Contains("RAG KEYWORDS", StringComparison.OrdinalIgnoreCase))?.Chunk
+            ?? chunks[0].Chunk;
+        var cleanContent = CleanMarkdownForCompactAnswer(primaryChunk.Content);
+        if (string.IsNullOrWhiteSpace(cleanContent))
         {
-            cleanContent = cleanContent[..700] + "...";
+            return NoMaterialFallbackMessage;
         }
 
-        sb.AppendLine(cleanContent);
-        sb.AppendLine();
+        return EnforceMaxLength(cleanContent, MaxAnswerCharacters);
+    }
 
-        if (chunks.Count > 1)
+    internal static string CleanMarkdownForCompactAnswer(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        // Strip common markdown headings/bold markers/section dividers so compact answers stay readable
+        var cleaned = text
+            .Replace("\r\n", "\n")
+            .Replace("**", string.Empty)
+            .Replace("##", string.Empty)
+            .Replace("###", string.Empty);
+
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"[=-]{3,}", " ");
+        cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\n+", " ");
+        return System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim();
+    }
+
+    internal static string EnforceMaxLength(string text, int maxLength = MaxAnswerCharacters)
+    {
+        if (string.IsNullOrWhiteSpace(text))
         {
-            sb.AppendLine("**Các thông tin bổ trợ liên quan:**");
-            for (int i = 1; i < Math.Min(chunks.Count, 3); i++)
-            {
-                var extra = chunks[i].Chunk;
-                var shortSnippet = GetCleanSnippet(extra.Content, 180);
-                sb.AppendLine($"- **{extra.Document?.Title}** (*{extra.Section}*): {shortSnippet}");
-            }
+            return NoMaterialFallbackMessage;
         }
 
-        return sb.ToString().Trim();
+        var normalized = System.Text.RegularExpressions.Regex.Replace(text.Trim(), @"\s+", " ");
+        if (normalized.Length <= maxLength)
+        {
+            return normalized;
+        }
+
+        var limit = Math.Max(1, maxLength - 3);
+        var candidate = normalized[..limit];
+        var lastSpace = candidate.LastIndexOf(' ');
+        if (lastSpace > limit / 2)
+        {
+            candidate = candidate[..lastSpace];
+        }
+
+        return candidate.TrimEnd(' ', ',', ';', ':') + "...";
     }
 
     private static string GetCleanSnippet(string text, int maxLength)

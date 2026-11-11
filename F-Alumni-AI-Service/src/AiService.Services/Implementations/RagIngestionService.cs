@@ -37,6 +37,7 @@ public class RagIngestionService : IRagIngestionService
 
         foreach (var file in files)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             try
             {
                 var relativePath = Path.GetRelativePath(directoryPath, file);
@@ -82,6 +83,10 @@ public class RagIngestionService : IRagIngestionService
                 result.TotalFilesProcessed++;
                 result.IngestedFiles.Add(fileName);
                 _logger.LogInformation("Đã nạp thành công {FileName} ({Chunks} chunks)", fileName, chunks.Count);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -201,17 +206,77 @@ public class RagIngestionService : IRagIngestionService
         }
 
         // 2. Structured text chunking by sections or paragraphs
-        var sections = Regex.Split(text, @"(?=(?:===|---|\b(?:\d+\.|[A-Z\s]{4,}:)\s))");
+        // Normalize boxed banner headers (=====\nHEADING\n=====) so title stays attached to its body
+        var normalizedText = Regex.Replace(
+            text,
+            @"[ \t]*={4,}[ \t]*\r?\n[ \t]*([^\r\n]+?)[ \t]*\r?\n[ \t]*={4,}[ \t]*",
+            "\n=== $1\n");
+
+        var sections = Regex.Split(normalizedText, @"(?=(?:===|---|\b(?:\d+\.|[A-Z\s]{4,}:)\s))");
         int chunkIdx = 1;
+        string? activeTopHeading = null;
 
         foreach (var sec in sections)
         {
-            var content = sec.Trim();
-            if (content.Length < 40) continue;
+            var raw = sec.Trim();
+            if (raw.Length < 40)
+            {
+                if (raw.StartsWith("==="))
+                {
+                    var shortHeading = raw.TrimStart('=').Trim();
+                    if (!string.IsNullOrWhiteSpace(shortHeading))
+                    {
+                        activeTopHeading = shortHeading;
+                    }
+                }
+                continue;
+            }
 
-            // Extract section title from first line
-            var lines = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var sectionTitle = lines.Length > 0 ? lines[0].Trim().Trim('=', '-', '#') : $"Phần {chunkIdx}";
+            var isTopHeading = raw.StartsWith("===");
+            var isSubSection = raw.StartsWith("---");
+
+            var lines = raw.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            var firstLineTitle = lines.Length > 0 ? lines[0].Trim().Trim('=', '-', '#', ' ') : string.Empty;
+
+            if ((isTopHeading || firstLineTitle.StartsWith("CAMPUS:", StringComparison.OrdinalIgnoreCase))
+                && !string.IsNullOrWhiteSpace(firstLineTitle))
+            {
+                activeTopHeading = firstLineTitle;
+            }
+
+            string sectionTitle;
+            var content = raw;
+            if (isSubSection)
+            {
+                var bodyWithoutMarker = raw.TrimStart('-', ' ', '\r', '\n').Trim();
+                var bodyLines = bodyWithoutMarker.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                var subLabel = bodyLines.Length > 0 ? bodyLines[0].Trim().TrimEnd(':') : string.Empty;
+
+                if (!string.IsNullOrWhiteSpace(activeTopHeading) && !string.IsNullOrWhiteSpace(subLabel) && subLabel.Length < 80)
+                {
+                    sectionTitle = $"{activeTopHeading} - {subLabel}";
+                    content = $"{activeTopHeading}\n{bodyWithoutMarker}";
+                }
+                else if (!string.IsNullOrWhiteSpace(activeTopHeading))
+                {
+                    sectionTitle = activeTopHeading;
+                    content = $"{activeTopHeading}\n{bodyWithoutMarker}";
+                }
+                else
+                {
+                    sectionTitle = string.IsNullOrWhiteSpace(subLabel) ? $"Phần {chunkIdx}" : subLabel;
+                    content = bodyWithoutMarker;
+                }
+            }
+            else
+            {
+                sectionTitle = string.IsNullOrWhiteSpace(firstLineTitle) ? $"Phần {chunkIdx}" : firstLineTitle;
+                if (isTopHeading)
+                {
+                    content = raw.TrimStart('=', ' ').Trim();
+                }
+            }
+
             if (sectionTitle.Length > 200) sectionTitle = sectionTitle[..200];
 
             chunks.Add(new RagChunk
