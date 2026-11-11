@@ -14,9 +14,9 @@ public class User
     public string FullName { get; set; } = string.Empty;
 
     /// <summary>
-    /// Authorization Role: USER or ADMIN.
+    /// Authorization Role: ALUMNI, STUDENT, USER, or ADMIN.
     /// </summary>
-    public string Role { get; set; } = "USER";
+    public string Role { get; set; } = "ALUMNI";
 
     /// <summary>
     /// Account Type: Student, Alumni, or Admin.

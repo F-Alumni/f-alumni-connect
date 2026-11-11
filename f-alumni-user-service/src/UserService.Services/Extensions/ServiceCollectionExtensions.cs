@@ -19,6 +19,7 @@ public static class ServiceCollectionExtensions
         // 2. Register Business Services
         services.AddScoped<ISampleItemService, SampleItemService>();
         services.AddScoped<IKafkaEventPublisher, KafkaEventPublisher>();
+        services.AddScoped<IEmailService, SmtpEmailService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserProfileAppService, UserProfileAppService>();
 

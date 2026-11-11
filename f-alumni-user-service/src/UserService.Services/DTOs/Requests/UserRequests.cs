@@ -88,11 +88,11 @@ public class SuspendUserRequest
 public class UpdateUserRoleRequest
 {
     /// <summary>
-    /// USER or ADMIN
+    /// ALUMNI, STUDENT, USER, or ADMIN
     /// </summary>
     [Required(ErrorMessage = "Role is required.")]
-    [RegularExpression("^(USER|ADMIN)$", ErrorMessage = "Role must be USER or ADMIN.")]
-    public string Role { get; set; } = "USER";
+    [RegularExpression("^(?i)(USER|ALUMNI|STUDENT|ADMIN)$", ErrorMessage = "Role must be ALUMNI, STUDENT, USER, or ADMIN.")]
+    public string Role { get; set; } = "ALUMNI";
 
     /// <summary>
     /// Student, Alumni, or Admin

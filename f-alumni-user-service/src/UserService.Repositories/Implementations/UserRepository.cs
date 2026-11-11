@@ -112,7 +112,14 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrWhiteSpace(role))
         {
             var r = role.Trim().ToLowerInvariant();
-            query = query.Where(u => u.Role.ToLower() == r || u.AccountType.ToLower() == r);
+            if (r == "user")
+            {
+                query = query.Where(u => u.Role.ToLower() == "user" || u.Role.ToLower() == "alumni" || u.Role.ToLower() == "student");
+            }
+            else
+            {
+                query = query.Where(u => u.Role.ToLower() == r || u.AccountType.ToLower() == r);
+            }
         }
 
         var totalCount = await query.CountAsync(cancellationToken);

@@ -14,7 +14,15 @@ services:
       - key: Database__SeedOnStartup
         value: "true"
       - key: Auth__AutoActivateOnRegister
+        value: "false"
+      - key: Smtp__Host
+        value: "smtp.gmail.com"
+      - key: Smtp__Port
+        value: "587"
+      - key: Smtp__EnableSsl
         value: "true"
+      - key: Smtp__FromName
+        value: "FPT Alumni Connect"
       - key: Jwt__Issuer
         value: https://identity.falumni.local
       - key: Jwt__Audience

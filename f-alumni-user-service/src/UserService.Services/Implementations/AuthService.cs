@@ -19,17 +19,20 @@ public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IKafkaEventPublisher _kafkaPublisher;
+    private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository userRepository,
         IKafkaEventPublisher kafkaPublisher,
+        IEmailService emailService,
         IConfiguration configuration,
         ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _kafkaPublisher = kafkaPublisher;
+        _emailService = emailService;
         _configuration = configuration;
         _logger = logger;
     }
@@ -39,7 +42,8 @@ public class AuthService : IAuthService
         ArgumentNullException.ThrowIfNull(request);
 
         var email = request.Email.Trim().ToLowerInvariant();
-        if (!IsAllowedFptEmail(email))
+        var allowNonFptEmail = bool.TryParse(_configuration["Auth:AllowNonFptEmail"], out var allowAll) && allowAll;
+        if (!allowNonFptEmail && !IsAllowedFptEmail(email))
         {
             throw new ArgumentException("Email must belong to FPT domain (@fpt.edu.vn or @fe.edu.vn).");
         }
@@ -53,7 +57,7 @@ public class AuthService : IAuthService
         var autoActivate = bool.TryParse(_configuration["Auth:AutoActivateOnRegister"], out var autoAct) && autoAct;
 
         var userId = Guid.NewGuid();
-        var accountType = string.IsNullOrWhiteSpace(request.AccountType) ? "Alumni" : request.AccountType.Trim();
+        var (resolvedRole, resolvedAccountType) = ResolveRoleAndAccountType(request.Role, request.AccountType, request.GraduationYear);
         var campus = string.IsNullOrWhiteSpace(request.Campus) ? "HCM" : request.Campus.Trim();
         var user = new User
         {
@@ -61,8 +65,8 @@ public class AuthService : IAuthService
             Email = email,
             PasswordHash = PasswordHasher.HashPassword(request.Password),
             FullName = request.FullName.Trim(),
-            Role = "USER",
-            AccountType = accountType,
+            Role = resolvedRole,
+            AccountType = resolvedAccountType,
             Status = autoActivate ? "Active" : "PendingVerification",
             EmailVerified = autoActivate,
             CreatedAtUtc = DateTime.UtcNow,
@@ -96,6 +100,14 @@ public class AuthService : IAuthService
         };
         await _userRepository.CreateVerificationTokenAsync(verificationToken, cancellationToken);
 
+        // Send OTP directly to the user's email / Gmail via SMTP
+        await _emailService.SendOtpEmailAsync(
+            toEmail: user.Email,
+            fullName: user.FullName,
+            otpCode: otpCode,
+            purpose: "EmailVerification",
+            cancellationToken: cancellationToken);
+
         // Publish Kafka Event: user.registered.v1
         var eventData = new UserRegisteredEventV1(
             userId: user.Id,
@@ -105,7 +117,7 @@ public class AuthService : IAuthService
 
         await _kafkaPublisher.PublishUserRegisteredAsync(eventData, cancellationToken: cancellationToken);
 
-        _logger.LogInformation("Registered new user {UserId} ({Email})", user.Id, user.Email);
+        _logger.LogInformation("Registered new user {UserId} ({Email}) with Role={Role}, AccountType={AccountType}", user.Id, user.Email, user.Role, user.AccountType);
 
         return new RegisterResponse
         {
@@ -113,7 +125,7 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             Status = user.Status,
-            Message = "Registration successful. Please verify your email using the 6-digit OTP code.",
+            Message = "Registration successful. Please verify your email using the 6-digit OTP code sent to your email.",
             VerificationOtpPreview = otpCode
         };
     }
@@ -236,7 +248,7 @@ public class AuthService : IAuthService
                 Email = email,
                 PasswordHash = PasswordHasher.HashPassword(Guid.NewGuid().ToString("N")),
                 FullName = resolvedName,
-                Role = "USER",
+                Role = "ALUMNI",
                 AccountType = "Alumni",
                 Status = "Active",
                 EmailVerified = true,
@@ -350,13 +362,20 @@ public class AuthService : IAuthService
 
         await _userRepository.CreateVerificationTokenAsync(resetToken, cancellationToken);
 
+        await _emailService.SendOtpEmailAsync(
+            toEmail: user.Email,
+            fullName: user.FullName,
+            otpCode: otpCode,
+            purpose: "PasswordReset",
+            cancellationToken: cancellationToken);
+
         return new RegisterResponse
         {
             UserId = user.Id,
             Email = user.Email,
             FullName = user.FullName,
             Status = user.Status,
-            Message = "Password reset OTP has been generated.",
+            Message = "Password reset OTP has been generated and sent to your email.",
             VerificationOtpPreview = otpCode
         };
     }
@@ -399,18 +418,26 @@ public class AuthService : IAuthService
         var now = DateTime.UtcNow;
         var expires = now.AddHours(1);
 
+        var primaryRole = NormalizeRole(user.Role, user.AccountType);
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(ClaimTypes.Email, user.Email),
-            new("role", user.Role),
-            new(ClaimTypes.Role, user.Role),
+            new("role", primaryRole),
+            new(ClaimTypes.Role, primaryRole),
             new("status", user.Status),
             new("accountType", user.AccountType),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // Also include "USER" in ClaimTypes.Role for ALUMNI/STUDENT so any service checking [Authorize(Roles = "USER,ADMIN")] continues to work seamlessly
+        if (!string.Equals(primaryRole, "USER", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(primaryRole, "ADMIN", StringComparison.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, "USER"));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -445,6 +472,65 @@ public class AuthService : IAuthService
             ExpiresIn = 3600,
             User = user.ToResponse()
         };
+    }
+
+    public static (string Role, string AccountType) ResolveRoleAndAccountType(
+        string? requestedRole,
+        string? requestedAccountType,
+        int? graduationYear = null)
+    {
+        var rawRole = requestedRole?.Trim() ?? string.Empty;
+        var rawType = requestedAccountType?.Trim() ?? string.Empty;
+
+        if (rawRole.Equals("ADMIN", StringComparison.OrdinalIgnoreCase) ||
+            rawType.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("ADMIN", "Admin");
+        }
+
+        if (rawRole.Equals("STUDENT", StringComparison.OrdinalIgnoreCase) ||
+            rawType.Equals("Student", StringComparison.OrdinalIgnoreCase) ||
+            rawType.Equals("Sinh viên", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("STUDENT", "Student");
+        }
+
+        if (rawRole.Equals("ALUMNI", StringComparison.OrdinalIgnoreCase) ||
+            rawType.Equals("Alumni", StringComparison.OrdinalIgnoreCase) ||
+            rawType.Equals("Cựu sinh viên", StringComparison.OrdinalIgnoreCase))
+        {
+            return ("ALUMNI", "Alumni");
+        }
+
+        if (graduationYear.HasValue && graduationYear.Value > DateTime.UtcNow.Year)
+        {
+            return ("STUDENT", "Student");
+        }
+
+        return ("ALUMNI", "Alumni");
+    }
+
+    private static string NormalizeRole(string? role, string? accountType)
+    {
+        if (string.Equals(role, "ADMIN", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(accountType, "Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ADMIN";
+        }
+
+        if (string.Equals(role, "STUDENT", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(accountType, "Student", StringComparison.OrdinalIgnoreCase))
+        {
+            return "STUDENT";
+        }
+
+        if (string.Equals(role, "ALUMNI", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(accountType, "Alumni", StringComparison.OrdinalIgnoreCase))
+        {
+            return "ALUMNI";
+        }
+
+        return string.IsNullOrWhiteSpace(role) ? "ALUMNI" : role.ToUpperInvariant();
     }
 
     private static bool IsAllowedFptEmail(string email)

@@ -316,11 +316,13 @@ public class UserProfileAppService : IUserProfileAppService
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), userId);
 
-        user.Role = request.Role.Trim().ToUpperInvariant();
-        if (!string.IsNullOrWhiteSpace(request.AccountType))
-        {
-            user.AccountType = request.AccountType.Trim();
-        }
+        var (resolvedRole, resolvedAccountType) = AuthService.ResolveRoleAndAccountType(
+            request.Role,
+            request.AccountType,
+            user.Profile?.GraduationYear);
+
+        user.Role = resolvedRole;
+        user.AccountType = resolvedAccountType;
 
         await _userRepository.UpdateAsync(user, cancellationToken);
 

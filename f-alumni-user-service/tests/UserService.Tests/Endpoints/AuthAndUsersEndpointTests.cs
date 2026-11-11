@@ -78,6 +78,8 @@ public class AuthAndUsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         Assert.Equal(HttpStatusCode.OK, loginRes.StatusCode);
         var loginAuth = await loginRes.Content.ReadFromJsonAsync<AuthTokenResponse>();
         Assert.NotNull(loginAuth);
+        Assert.Equal("STUDENT", loginAuth.User.Role);
+        Assert.Equal("Student", loginAuth.User.AccountType);
 
         // 5. Refresh Token (US-11)
         var refreshRes = await _client.PostAsJsonAsync("/api/v1/auth/refresh-token", new RefreshTokenRequest
@@ -140,6 +142,8 @@ public class AuthAndUsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         var profile = await getRes.Content.ReadFromJsonAsync<UserProfileResponse>();
         Assert.NotNull(profile);
         Assert.Equal("Nguyen Van A", profile.FullName);
+        Assert.Equal("ALUMNI", profile.Role);
+        Assert.Equal("Alumni", profile.AccountType);
 
         // Directory search (US-09)
         var dirRes = await _client.GetAsync("/api/v1/users/directory?search=Nguyen");

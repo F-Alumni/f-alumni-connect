@@ -28,7 +28,7 @@ public class UserProfileResponse
     public string FullName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
     public string AvatarUrl { get; set; } = string.Empty;
-    public string Role { get; set; } = "USER";
+    public string Role { get; set; } = "ALUMNI";
     public string AccountType { get; set; } = "Alumni";
     public string Status { get; set; } = "Active";
     public bool EmailVerified { get; set; }

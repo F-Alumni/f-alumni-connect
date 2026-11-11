@@ -33,6 +33,12 @@ public class RegisterRequest
     /// </summary>
     [StringLength(30)]
     public string AccountType { get; set; } = "Alumni";
+
+    /// <summary>
+    /// Optional explicit role: ALUMNI, STUDENT, or USER (defaults based on AccountType).
+    /// </summary>
+    [StringLength(30)]
+    public string? Role { get; set; }
 }
 
 public class VerifyEmailRequest

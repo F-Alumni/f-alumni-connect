@@ -92,7 +92,7 @@ public class SampleItemsController : ControllerBase
     /// <response code="401">Missing or invalid JWT Bearer token.</response>
     /// <response code="403">Authenticated user does not have USER or ADMIN role.</response>
     [HttpPost]
-    [Authorize(Roles = "USER,ADMIN")]
+    [Authorize(Roles = "USER,ALUMNI,STUDENT,ADMIN")]
     [ProducesResponseType(typeof(SampleItemResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -121,7 +121,7 @@ public class SampleItemsController : ControllerBase
     /// <response code="403">Authenticated user does not have USER or ADMIN role.</response>
     /// <response code="404">Item with specified ID was not found.</response>
     [HttpPut("{id:guid}")]
-    [Authorize(Roles = "USER,ADMIN")]
+    [Authorize(Roles = "USER,ALUMNI,STUDENT,ADMIN")]
     [ProducesResponseType(typeof(SampleItemResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
