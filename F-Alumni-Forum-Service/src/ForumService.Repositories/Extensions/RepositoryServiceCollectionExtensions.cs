@@ -39,6 +39,7 @@ public static class RepositoryServiceCollectionExtensions
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<IEventRepository, EventRepository>();
         services.AddScoped<IInteractionRepository, InteractionRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
 
         return services;
     }

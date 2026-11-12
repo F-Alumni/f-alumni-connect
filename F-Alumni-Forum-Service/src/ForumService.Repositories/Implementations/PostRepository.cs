@@ -19,8 +19,7 @@ public class PostRepository : IPostRepository
         return await _dbContext.Posts
             .Include(p => p.Images)
             .Include(p => p.Tags)
-            .Include(p => p.Comments.Where(c => c.ParentCommentId == null))
-                .ThenInclude(c => c.Replies)
+            .Include(p => p.Comments)
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsHidden, cancellationToken);
     }
 
@@ -114,7 +113,10 @@ public class PostRepository : IPostRepository
 
     public async Task UpdateAsync(Post post, CancellationToken cancellationToken = default)
     {
-        _dbContext.Posts.Update(post);
+        if (_dbContext.Entry(post).State == EntityState.Detached)
+        {
+            _dbContext.Posts.Update(post);
+        }
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
 

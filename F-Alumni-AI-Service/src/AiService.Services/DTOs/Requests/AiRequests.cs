@@ -26,3 +26,13 @@ public class IngestRagRequest
     public string? DirectoryPath { get; set; }
     public bool ForceReindex { get; set; } = false;
 }
+
+public class BoostTestRequest
+{
+    public string Query { get; set; } = string.Empty;
+    public string? Q { get; set; }
+    public string? ProgramCode { get; set; }
+    public string? Major { get; set; }
+    public string? Campus { get; set; } = "All";
+    public int TopK { get; set; } = 5;
+}

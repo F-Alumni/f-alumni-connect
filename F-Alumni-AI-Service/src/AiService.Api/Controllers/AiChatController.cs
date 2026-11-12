@@ -13,15 +13,18 @@ namespace AiService.Api.Controllers;
 public class AiChatController : ControllerBase
 {
     private readonly IAiChatService _aiChatService;
+    private readonly IRagSearchService _ragSearchService;
     private readonly IRagIngestionService _ragIngestionService;
     private readonly IConfiguration _configuration;
 
     public AiChatController(
         IAiChatService aiChatService,
+        IRagSearchService ragSearchService,
         IRagIngestionService ragIngestionService,
         IConfiguration configuration)
     {
         _aiChatService = aiChatService;
+        _ragSearchService = ragSearchService;
         _ragIngestionService = ragIngestionService;
         _configuration = configuration;
     }
@@ -77,6 +80,52 @@ public class AiChatController : ControllerBase
 
         var convs = await _aiChatService.GetUserConversationsAsync(userId, cancellationToken);
         return Ok(convs);
+    }
+
+    /// <summary>
+    /// Diagnostic endpoint to test Intent Boosting and RAG retrieval scoring (/boost).
+    /// </summary>
+    [HttpGet("boost")]
+    [HttpGet("boost/test")]
+    [HttpGet("/boost")]
+    [HttpGet("/boost/test")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(RagBoostDiagnosticsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TestBoostGet(
+        [FromQuery] string? q = null,
+        [FromQuery] string? query = null,
+        [FromQuery] string? major = null,
+        [FromQuery] string? programCode = null,
+        [FromQuery] string campus = "All",
+        [FromQuery] int topK = 5,
+        CancellationToken cancellationToken = default)
+    {
+        var rawQuery = !string.IsNullOrWhiteSpace(q) ? q : (!string.IsNullOrWhiteSpace(query) ? query : "Học phí tại Hola là bao nhiêu?");
+        var resolvedMajor = !string.IsNullOrWhiteSpace(major) ? major : programCode;
+        var resolvedTopK = topK <= 0 ? 5 : Math.Min(topK, 50);
+        var diagnostics = await _ragSearchService.TestBoostAsync(rawQuery, resolvedMajor, campus, resolvedTopK, cancellationToken);
+        return Ok(diagnostics);
+    }
+
+    /// <summary>
+    /// Diagnostic endpoint to test Intent Boosting with JSON payload (/boost).
+    /// </summary>
+    [HttpPost("boost")]
+    [HttpPost("/boost")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(RagBoostDiagnosticsResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> TestBoostPost(
+        [FromBody] BoostTestRequest? request,
+        CancellationToken cancellationToken = default)
+    {
+        var rawQuery = !string.IsNullOrWhiteSpace(request?.Query)
+            ? request!.Query
+            : (!string.IsNullOrWhiteSpace(request?.Q) ? request!.Q : "Học phí tại Hola là bao nhiêu?");
+        var program = request?.ProgramCode ?? request?.Major;
+        var campus = request?.Campus ?? "All";
+        var requestedTopK = (request?.TopK ?? 5) <= 0 ? 5 : Math.Min(request!.TopK, 50);
+        var diagnostics = await _ragSearchService.TestBoostAsync(rawQuery, program, campus, requestedTopK, cancellationToken);
+        return Ok(diagnostics);
     }
 
     /// <summary>

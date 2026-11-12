@@ -55,6 +55,12 @@ public class InteractionRepository : IInteractionRepository
             .AnyAsync(r => r.PostId == postId && r.UserId == userId, cancellationToken);
     }
 
+    public async Task<bool> HasUserBookmarkedAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Bookmarks
+            .AnyAsync(b => b.PostId == postId && b.UserId == userId, cancellationToken);
+    }
+
     public async Task<bool> ToggleBookmarkAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
     {
         var existing = await _dbContext.Bookmarks

@@ -15,17 +15,29 @@ public class InteractionService : IInteractionService
     private readonly IInteractionRepository _interactionRepository;
     private readonly IPostRepository _postRepository;
     private readonly ILogger<InteractionService> _logger;
+    private readonly INotificationService? _notificationService;
     private readonly IKafkaProducerService? _kafkaProducer;
 
     public InteractionService(
         IInteractionRepository interactionRepository,
         IPostRepository postRepository,
         ILogger<InteractionService> logger,
+        IKafkaProducerService? kafkaProducer)
+        : this(interactionRepository, postRepository, logger, null, kafkaProducer)
+    {
+    }
+
+    public InteractionService(
+        IInteractionRepository interactionRepository,
+        IPostRepository postRepository,
+        ILogger<InteractionService> logger,
+        INotificationService? notificationService = null,
         IKafkaProducerService? kafkaProducer = null)
     {
         _interactionRepository = interactionRepository;
         _postRepository = postRepository;
         _logger = logger;
+        _notificationService = notificationService;
         _kafkaProducer = kafkaProducer;
     }
 
@@ -34,7 +46,12 @@ public class InteractionService : IInteractionService
         return ToggleReactionAsync(postId, userId, actorName: null, cancellationToken);
     }
 
-    public async Task<bool> ToggleReactionAsync(Guid postId, Guid userId, string? actorName, CancellationToken cancellationToken = default)
+    public Task<bool> ToggleReactionAsync(Guid postId, Guid userId, string? actorName, CancellationToken cancellationToken = default)
+    {
+        return ToggleReactionAsync(postId, userId, actorName ?? string.Empty, userAvatarUrl: string.Empty, cancellationToken);
+    }
+
+    public async Task<bool> ToggleReactionAsync(Guid postId, Guid userId, string userName, string userAvatarUrl, CancellationToken cancellationToken = default)
     {
         var post = await _postRepository.GetByIdAsync(postId, cancellationToken);
         if (post == null)
@@ -45,18 +62,45 @@ public class InteractionService : IInteractionService
         var liked = await _interactionRepository.ToggleReactionAsync(postId, userId, "Like", cancellationToken);
         _logger.LogInformation("User {UserId} toggled reaction on post {PostId}: {Liked}", userId, postId, liked);
 
-        if (liked && post.AuthorId != userId && _kafkaProducer != null)
+        if (liked && post.AuthorId != userId)
         {
-            await _kafkaProducer.PublishPostReactedAsync(new PostReactedEventV1
+            var shortTitle = post.Title.Length > 45 ? post.Title[..45] + "..." : post.Title;
+            var displayName = !string.IsNullOrWhiteSpace(userName) ? userName.Trim() : "Một người dùng";
+
+            if (_notificationService != null)
             {
-                PostId = post.Id,
-                PostTitle = post.Title,
-                PostAuthorId = post.AuthorId,
-                ActorUserId = userId,
-                ActorName = string.IsNullOrWhiteSpace(actorName) ? "Một người dùng" : actorName.Trim(),
-                ReactionType = "Like",
-                OccurredAt = DateTime.UtcNow
-            }, CancellationToken.None);
+                try
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        recipientId: post.AuthorId,
+                        senderId: userId,
+                        senderName: displayName,
+                        senderAvatarUrl: userAvatarUrl,
+                        type: "POST_REACTION",
+                        title: "Lượt thích mới trên bài viết",
+                        body: $"{displayName} đã thích bài viết \"{shortTitle}\"",
+                        postId: postId,
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create POST_REACTION notification for post {PostId}", postId);
+                }
+            }
+
+            if (_kafkaProducer != null)
+            {
+                await _kafkaProducer.PublishPostReactedAsync(new PostReactedEventV1
+                {
+                    PostId = post.Id,
+                    PostTitle = post.Title,
+                    PostAuthorId = post.AuthorId,
+                    ActorUserId = userId,
+                    ActorName = displayName,
+                    ReactionType = "Like",
+                    OccurredAt = DateTime.UtcNow
+                }, CancellationToken.None);
+            }
         }
 
         return liked;
@@ -81,28 +125,34 @@ public class InteractionService : IInteractionService
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var (items, totalCount) = await _interactionRepository.GetBookmarkedPostsAsync(userId, page, pageSize, cancellationToken);
-        var responses = items.Select(p => new PostResponse
+        var responses = new List<PostResponse>();
+        foreach (var p in items)
         {
-            Id = p.Id,
-            AuthorId = p.AuthorId,
-            AuthorName = p.AuthorName,
-            AuthorAvatarUrl = p.AuthorAvatarUrl,
-            Title = p.Title,
-            Content = p.Content,
-            PostType = p.PostType,
-            Major = p.Major,
-            Campus = p.Campus,
-            IsAnswered = p.IsAnswered,
-            ViewCount = p.ViewCount,
-            LikeCount = p.LikeCount,
-            CommentCount = p.CommentCount,
-            IsPinned = p.IsPinned,
-            CreatedAt = p.CreatedAt,
-            UpdatedAt = p.UpdatedAt,
-            Images = p.Images.OrderBy(i => i.Order).Select(i => i.ImageUrl).ToList(),
-            Tags = p.Tags.Select(t => t.TagName).ToList(),
-            IsBookmarked = true
-        }).ToList();
+            var hasLiked = await _interactionRepository.HasUserReactedAsync(p.Id, userId, cancellationToken);
+            responses.Add(new PostResponse
+            {
+                Id = p.Id,
+                AuthorId = p.AuthorId,
+                AuthorName = p.AuthorName,
+                AuthorAvatarUrl = p.AuthorAvatarUrl,
+                Title = p.Title,
+                Content = p.Content,
+                PostType = p.PostType,
+                Major = p.Major,
+                Campus = p.Campus,
+                IsAnswered = p.IsAnswered,
+                ViewCount = p.ViewCount,
+                LikeCount = p.LikeCount,
+                CommentCount = p.CommentCount,
+                IsPinned = p.IsPinned,
+                CreatedAt = p.CreatedAt,
+                UpdatedAt = p.UpdatedAt,
+                Images = p.Images.OrderBy(i => i.Order).Select(i => i.ImageUrl).ToList(),
+                Tags = p.Tags.Select(t => t.TagName).ToList(),
+                HasLiked = hasLiked,
+                IsBookmarked = true
+            });
+        }
 
         return new PagedResponse<PostResponse>(responses, totalCount, page, pageSize);
     }

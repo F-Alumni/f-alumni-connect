@@ -26,6 +26,7 @@ public class ForumServiceDbContext : DbContext
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<Event> Events => Set<Event>();
     public DbSet<EventAttendee> EventAttendees => Set<EventAttendee>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,5 +43,6 @@ public class ForumServiceDbContext : DbContext
         modelBuilder.ApplyConfiguration<Report>(forumConfig);
         modelBuilder.ApplyConfiguration<Event>(forumConfig);
         modelBuilder.ApplyConfiguration<EventAttendee>(forumConfig);
+        modelBuilder.ApplyConfiguration<Notification>(forumConfig);
     }
 }

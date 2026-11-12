@@ -12,12 +12,17 @@ namespace ForumService.Services.Implementations;
 public class EventService : IEventService
 {
     private readonly IEventRepository _eventRepository;
+    private readonly INotificationService? _notificationService;
     private readonly ILogger<EventService> _logger;
 
-    public EventService(IEventRepository eventRepository, ILogger<EventService> logger)
+    public EventService(
+        IEventRepository eventRepository,
+        ILogger<EventService> logger,
+        INotificationService? notificationService = null)
     {
         _eventRepository = eventRepository;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<EventResponse> CreateEventAsync(CreateEventRequest request, Guid creatorId, string creatorName, string creatorAvatarUrl, CancellationToken cancellationToken = default)
@@ -156,6 +161,30 @@ public class EventService : IEventService
 
         await _eventRepository.AddOrUpdateAttendeeAsync(attendee, cancellationToken);
         _logger.LogInformation("User {UserId} RSVP {Status} for event {EventId}", userId, request.Status, eventId);
+
+        // Auto-trigger notification for event creator if another user RSVPs
+        if (_notificationService != null && userId != evt.CreatorId && normalizedStatus != "NotGoing")
+        {
+            var shortTitle = evt.Title.Length > 45 ? evt.Title[..45] + "..." : evt.Title;
+            var statusText = normalizedStatus == "Going" ? "sẽ tham gia" : "quan tâm đến";
+            try
+            {
+                await _notificationService.CreateNotificationAsync(
+                    recipientId: evt.CreatorId,
+                    senderId: userId,
+                    senderName: userName,
+                    senderAvatarUrl: userAvatarUrl,
+                    type: "EVENT_RSVP",
+                    title: "Phản hồi sự kiện mới",
+                    body: $"{userName} {statusText} sự kiện \"{shortTitle}\"",
+                    eventId: eventId,
+                    cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create EVENT_RSVP notification for event {EventId}", eventId);
+            }
+        }
     }
 
     public async Task<IReadOnlyList<EventAttendeeResponse>> GetAttendeesAsync(Guid eventId, CancellationToken cancellationToken = default)

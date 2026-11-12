@@ -14,17 +14,29 @@ public class CommentService : ICommentService
     private readonly ICommentRepository _commentRepository;
     private readonly IPostRepository _postRepository;
     private readonly ILogger<CommentService> _logger;
+    private readonly INotificationService? _notificationService;
     private readonly IKafkaProducerService? _kafkaProducer;
 
     public CommentService(
         ICommentRepository commentRepository,
         IPostRepository postRepository,
         ILogger<CommentService> logger,
+        IKafkaProducerService? kafkaProducer)
+        : this(commentRepository, postRepository, logger, null, kafkaProducer)
+    {
+    }
+
+    public CommentService(
+        ICommentRepository commentRepository,
+        IPostRepository postRepository,
+        ILogger<CommentService> logger,
+        INotificationService? notificationService = null,
         IKafkaProducerService? kafkaProducer = null)
     {
         _commentRepository = commentRepository;
         _postRepository = postRepository;
         _logger = logger;
+        _notificationService = notificationService;
         _kafkaProducer = kafkaProducer;
     }
 
@@ -66,6 +78,55 @@ public class CommentService : ICommentService
 
         var created = await _commentRepository.AddAsync(comment, cancellationToken);
         _logger.LogInformation("Added comment {CommentId} to post {PostId} by {AuthorId}", created.Id, postId, authorId);
+
+        // Auto-trigger notifications
+        if (_notificationService != null)
+        {
+            var shortTitle = post.Title.Length > 45 ? post.Title[..45] + "..." : post.Title;
+            if (authorId != post.AuthorId)
+            {
+                try
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        recipientId: post.AuthorId,
+                        senderId: authorId,
+                        senderName: authorName,
+                        senderAvatarUrl: authorAvatarUrl,
+                        type: "POST_COMMENT",
+                        title: "Bình luận mới trên bài viết",
+                        body: $"{authorName} đã bình luận vào bài viết \"{shortTitle}\"",
+                        postId: postId,
+                        commentId: created.Id,
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create POST_COMMENT notification for post {PostId}", postId);
+                }
+            }
+
+            if (parent != null && parent.AuthorId != authorId && parent.AuthorId != post.AuthorId)
+            {
+                try
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        recipientId: parent.AuthorId,
+                        senderId: authorId,
+                        senderName: authorName,
+                        senderAvatarUrl: authorAvatarUrl,
+                        type: "COMMENT_REPLY",
+                        title: "Phản hồi mới cho bình luận",
+                        body: $"{authorName} đã trả lời bình luận của bạn trong bài viết \"{shortTitle}\"",
+                        postId: postId,
+                        commentId: created.Id,
+                        cancellationToken: cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to create COMMENT_REPLY notification for comment {ParentCommentId}", parent.Id);
+                }
+            }
+        }
 
         if (_kafkaProducer != null && (post.AuthorId != authorId || (parent != null && parent.AuthorId != authorId)))
         {
@@ -156,11 +217,36 @@ public class CommentService : ICommentService
             throw new ForbiddenException("Chỉ người đặt câu hỏi mới có quyền chấp nhận câu trả lời tốt nhất.");
         }
 
+        var wasAlreadyAccepted = comment.IsAcceptedAnswer;
         comment.IsAcceptedAnswer = true;
         post.IsAnswered = true;
 
         await _commentRepository.UpdateAsync(comment, cancellationToken);
         await _postRepository.UpdateAsync(post, cancellationToken);
+
+        // Auto-trigger notification for accepted answer
+        if (!wasAlreadyAccepted && _notificationService != null && currentUserId != comment.AuthorId)
+        {
+            var shortTitle = post.Title.Length > 45 ? post.Title[..45] + "..." : post.Title;
+            try
+            {
+                await _notificationService.CreateNotificationAsync(
+                    recipientId: comment.AuthorId,
+                    senderId: currentUserId,
+                    senderName: post.AuthorName,
+                    senderAvatarUrl: post.AuthorAvatarUrl,
+                    type: "COMMENT_ACCEPTED",
+                    title: "Câu trả lời được chấp nhận",
+                    body: $"Câu trả lời của bạn trong \"{shortTitle}\" đã được chọn làm giải pháp tốt nhất!",
+                    postId: post.Id,
+                    commentId: comment.Id,
+                    cancellationToken: cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create COMMENT_ACCEPTED notification for comment {CommentId}", comment.Id);
+            }
+        }
 
         return MapToResponse(comment);
     }

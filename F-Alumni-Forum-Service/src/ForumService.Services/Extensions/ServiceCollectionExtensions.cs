@@ -23,6 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IEventService, EventService>();
         services.AddScoped<IInteractionService, InteractionService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationBroadcaster, NoOpNotificationBroadcaster>();
         services.AddScoped<IKafkaProducerService, KafkaProducerService>();
 
         return services;

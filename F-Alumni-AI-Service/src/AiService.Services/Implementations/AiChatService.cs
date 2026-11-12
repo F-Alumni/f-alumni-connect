@@ -40,7 +40,10 @@ public class AiChatService : IAiChatService
         _geminiApiKey = !string.IsNullOrWhiteSpace(configuredGeminiKey)
             ? configuredGeminiKey
             : Environment.GetEnvironmentVariable("GEMINI_API_KEY");
-        _geminiModel = configuration["Gemini:Model"] ?? "gemini-1.5-flash";
+        var configuredModel = configuration["Gemini:Model"];
+        _geminiModel = !string.IsNullOrWhiteSpace(configuredModel)
+            ? configuredModel
+            : Environment.GetEnvironmentVariable("GEMINI_MODEL") ?? "gemini-2.5-flash";
     }
 
     public async Task<AiChatResponse> AskAsync(AiChatRequest request, Guid userId, CancellationToken cancellationToken = default)

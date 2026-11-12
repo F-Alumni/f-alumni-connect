@@ -112,6 +112,7 @@ public class PostService : IPostService
         if (currentUserId.HasValue)
         {
             response.HasLiked = await _interactionRepository.HasUserReactedAsync(id, currentUserId.Value, cancellationToken);
+            response.IsBookmarked = await _interactionRepository.HasUserBookmarkedAsync(id, currentUserId.Value, cancellationToken);
         }
         return response;
     }
@@ -140,6 +141,7 @@ public class PostService : IPostService
             if (currentUserId.HasValue)
             {
                 res.HasLiked = await _interactionRepository.HasUserReactedAsync(item.Id, currentUserId.Value, cancellationToken);
+                res.IsBookmarked = await _interactionRepository.HasUserBookmarkedAsync(item.Id, currentUserId.Value, cancellationToken);
             }
             responses.Add(res);
         }
@@ -153,7 +155,14 @@ public class PostService : IPostService
         pageSize = Math.Clamp(pageSize, 1, 100);
 
         var (items, totalCount) = await _postRepository.GetByAuthorAsync(authorId, page, pageSize, cancellationToken);
-        var responses = items.Select(MapToResponse).ToList();
+        var responses = new List<PostResponse>();
+        foreach (var item in items)
+        {
+            var res = MapToResponse(item);
+            res.HasLiked = await _interactionRepository.HasUserReactedAsync(item.Id, authorId, cancellationToken);
+            res.IsBookmarked = await _interactionRepository.HasUserBookmarkedAsync(item.Id, authorId, cancellationToken);
+            responses.Add(res);
+        }
         return new PagedResponse<PostResponse>(responses, totalCount, page, pageSize);
     }
 
@@ -197,7 +206,7 @@ public class PostService : IPostService
             int order = 0;
             foreach (var url in request.ImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)))
             {
-                post.Images.Add(new PostImage { ImageUrl = url.Trim(), Order = order++ });
+                post.Images.Add(new PostImage { Id = Guid.Empty, PostId = post.Id, ImageUrl = url.Trim(), Order = order++ });
             }
         }
 
@@ -206,7 +215,7 @@ public class PostService : IPostService
             post.Tags.Clear();
             foreach (var tag in request.Tags.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct())
             {
-                post.Tags.Add(new PostTag { TagName = tag.Trim().ToLower() });
+                post.Tags.Add(new PostTag { Id = Guid.Empty, PostId = post.Id, TagName = tag.Trim().ToLower() });
             }
         }
 

@@ -56,3 +56,25 @@ public class RagIngestionResult
     public List<string> IngestedFiles { get; set; } = new();
     public string Message { get; set; } = string.Empty;
 }
+
+public class RagBoostDiagnosticsResponse
+{
+    public string Query { get; set; } = string.Empty;
+    public string NormalizedQuery { get; set; } = string.Empty;
+    public List<string> DetectedIntents { get; set; } = new();
+    public List<string> ExtractedTerms { get; set; } = new();
+    public int TotalCandidateChunks { get; set; }
+    public List<ScoredChunkDetail> TopResults { get; set; } = new();
+}
+
+public class ScoredChunkDetail
+{
+    public double Score { get; set; }
+    public string DocumentTitle { get; set; } = string.Empty;
+    public string DocumentType { get; set; } = string.Empty;
+    public string? ProgramCode { get; set; }
+    public string Campus { get; set; } = string.Empty;
+    public string Section { get; set; } = string.Empty;
+    public string? MatchedIntent { get; set; }
+    public string Snippet { get; set; } = string.Empty;
+}

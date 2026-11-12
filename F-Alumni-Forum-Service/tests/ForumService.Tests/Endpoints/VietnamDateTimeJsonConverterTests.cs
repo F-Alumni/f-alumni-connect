@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using ForumService.Api.Data;
 using ForumService.Api.Serialization;
 using ForumService.Services.DTOs.Responses;
@@ -9,11 +10,13 @@ namespace ForumService.Tests.Endpoints;
 
 public class VietnamDateTimeJsonConverterTests : IClassFixture<CustomWebApplicationFactory>
 {
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public VietnamDateTimeJsonConverterTests(CustomWebApplicationFactory factory)
     {
+        _factory = factory;
         _client = factory.CreateClient();
         _jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         _jsonOptions.Converters.Add(new VietnamDateTimeJsonConverter());
@@ -101,6 +104,12 @@ public class VietnamDateTimeJsonConverterTests : IClassFixture<CustomWebApplicat
     [Fact]
     public async Task GetPostsEndpoint_SerializesCreatedAtInVietnamGmtPlusSeven()
     {
+        // Ensure at least one post exists in the database
+        using (var scope = _factory.Services.CreateScope())
+        {
+            await ForumDatabaseSeeder.SeedAsync(scope.ServiceProvider);
+        }
+
         // Act
         var response = await _client.GetAsync("/api/v1/posts?pageNumber=1&pageSize=5");
 

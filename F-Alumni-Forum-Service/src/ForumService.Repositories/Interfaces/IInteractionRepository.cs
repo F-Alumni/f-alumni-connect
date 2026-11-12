@@ -9,6 +9,7 @@ public interface IInteractionRepository
     Task<bool> HasUserReactedAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default);
 
     // Bookmarks
+    Task<bool> HasUserBookmarkedAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> ToggleBookmarkAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default);
     Task<(IReadOnlyList<Post> Items, int TotalCount)> GetBookmarkedPostsAsync(Guid userId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default);
 

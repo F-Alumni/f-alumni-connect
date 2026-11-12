@@ -14,7 +14,8 @@ public class ForumConfiguration :
     IEntityTypeConfiguration<Bookmark>,
     IEntityTypeConfiguration<Report>,
     IEntityTypeConfiguration<Event>,
-    IEntityTypeConfiguration<EventAttendee>
+    IEntityTypeConfiguration<EventAttendee>,
+    IEntityTypeConfiguration<Notification>
 {
     public void Configure(EntityTypeBuilder<Category> builder)
     {
@@ -151,5 +152,21 @@ public class ForumConfiguration :
         builder.Property(a => a.Status).HasMaxLength(30).IsRequired();
         builder.Property(a => a.UserName).HasMaxLength(200).IsRequired();
         builder.HasIndex(a => new { a.EventId, a.UserId }).IsUnique();
+    }
+
+    public void Configure(EntityTypeBuilder<Notification> builder)
+    {
+        builder.ToTable("Notifications");
+        builder.HasKey(n => n.Id);
+        builder.Property(n => n.Type).HasMaxLength(50).IsRequired();
+        builder.Property(n => n.Title).HasMaxLength(250).IsRequired();
+        builder.Property(n => n.Body).HasMaxLength(1000).IsRequired();
+        builder.Property(n => n.SenderName).HasMaxLength(200).IsRequired();
+        builder.Property(n => n.SenderAvatarUrl).HasMaxLength(500);
+        builder.Property(n => n.LinkUrl).HasMaxLength(500);
+
+        builder.HasIndex(n => n.RecipientId);
+        builder.HasIndex(n => new { n.RecipientId, n.IsRead });
+        builder.HasIndex(n => n.CreatedAt);
     }
 }

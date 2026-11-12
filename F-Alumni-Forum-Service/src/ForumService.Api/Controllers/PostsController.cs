@@ -36,11 +36,13 @@ public class PostsController : ControllerBase
         [FromQuery] bool? isAnswered = null,
         [FromQuery] string sort = "latest",
         [FromQuery] int page = 1,
+        [FromQuery] int? pageNumber = null,
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = User.Identity?.IsAuthenticated == true ? User.GetUserId() : (Guid?)null;
-        var result = await _postService.GetFeedAsync(campus, major, postType, search, isAnswered, sort, page, pageSize, currentUserId, cancellationToken);
+        var resolvedPage = pageNumber ?? page;
+        var result = await _postService.GetFeedAsync(campus, major, postType, search, isAnswered, sort, resolvedPage, pageSize, currentUserId, cancellationToken);
         return Ok(result);
     }
 

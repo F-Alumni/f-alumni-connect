@@ -6,6 +6,7 @@ using ForumService.Api.Hubs;
 using ForumService.Api.Middlewares;
 using ForumService.Api.Serialization;
 using ForumService.Services.Extensions;
+using ForumService.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -104,6 +105,7 @@ builder.Services.AddAuthorization(options =>
 
 // 4. Add Application Layer (Services & Repositories)
 builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddScoped<INotificationBroadcaster, SignalRNotificationBroadcaster>();
 
 var app = builder.Build();
 

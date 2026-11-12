@@ -97,6 +97,11 @@ public class ForumServiceTests
             return Task.FromResult(Likes.Contains((postId, userId)));
         }
 
+        public Task<bool> HasUserBookmarkedAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(Bookmarks.Contains((postId, userId)));
+        }
+
         public Task<bool> ToggleBookmarkAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
         {
             if (Bookmarks.Contains((postId, userId)))
