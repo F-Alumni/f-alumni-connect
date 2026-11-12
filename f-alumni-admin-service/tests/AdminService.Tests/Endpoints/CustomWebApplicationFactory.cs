@@ -16,5 +16,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         builder.UseSetting("DatabaseProvider", "InMemory");
         builder.UseSetting("Jwt:Key", TestJwtSecret);
+        builder.UseSetting("Kafka:BootstrapServers", "");
+        builder.UseSetting("Services:UserService:Url", "http://127.0.0.1:59999");
     }
 }

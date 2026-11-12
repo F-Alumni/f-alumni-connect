@@ -98,7 +98,7 @@ public class DataExportService : IDataExportService
         return result;
     }
 
-    private static string EscapeCsv(string value)
+    private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "\"\"";
         var escaped = value.Replace("\"", "\"\"");

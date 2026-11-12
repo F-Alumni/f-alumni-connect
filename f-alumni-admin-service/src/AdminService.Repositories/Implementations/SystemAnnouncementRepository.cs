@@ -46,6 +46,9 @@ public class SystemAnnouncementRepository : ISystemAnnouncementRepository
             query = query.Where(x => x.Type == type);
         }
 
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query

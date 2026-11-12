@@ -451,6 +451,55 @@ public class AiServiceTests
         Assert.InRange(response.Answer.Length, 1, AiChatService.MaxAnswerCharacters);
     }
 
+    [Fact]
+    public async Task MentorRecommendation_HandlesNullMentorFieldsWithoutNullReference()
+    {
+        var repo = new FakeRagRepository();
+        repo.Mentors.Add(new MentorProfile
+        {
+            Id = Guid.NewGuid(),
+            UserId = Guid.NewGuid(),
+            FullName = "Null Fields Mentor",
+            Email = "mentor@fpt.edu.vn",
+            Major = "SE",
+            CurrentCompany = "FPT",
+            JobTitle = null!,
+            Skills = null!,
+            Bio = null!,
+            AvatarUrl = string.Empty
+        });
+
+        var mentorService = new MentorRecommendationService(repo, NullLogger<MentorRecommendationService>.Instance);
+        var results = await mentorService.RecommendMentorsAsync(new RecommendMentorRequest
+        {
+            Major = null!,
+            TargetSkills = null!,
+            CareerGoal = "backend"
+        });
+
+        Assert.Single(results);
+        Assert.Equal("Null Fields Mentor", results[0].FullName);
+    }
+
+    [Fact]
+    public async Task AskAsync_WhitespaceQuestion_ThrowsArgumentException()
+    {
+        var repo = new FakeRagRepository();
+        var searchService = new RagSearchService(repo, NullLogger<RagSearchService>.Instance);
+        var config = new ConfigurationBuilder().Build();
+        var chatService = new AiChatService(
+            repo,
+            searchService,
+            new System.Net.Http.HttpClient(new StubHttpMessageHandler(_ => new System.Net.Http.HttpResponseMessage(System.Net.HttpStatusCode.OK))).AsFactory(),
+            config,
+            NullLogger<AiChatService>.Instance);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => chatService.AskAsync(new AiChatRequest
+        {
+            Question = "   "
+        }, Guid.NewGuid()));
+    }
+
     private sealed class StubHttpMessageHandler : System.Net.Http.HttpMessageHandler
     {
         private readonly Func<string?, System.Net.Http.HttpResponseMessage> _responder;

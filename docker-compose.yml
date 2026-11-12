@@ -1,6 +1,6 @@
 # ==============================================================================
 # FPT Alumni Connect — Unified Microservices Orchestration (PRN232 Final Project)
-# Backend Services: User (5001/50051), Chat (5002), Forum (5003), AI (5004), Admin (5005), Gateway (5000)
+# Backend Services: User (5001/50051), Chat (5002), Forum (5003), AI (5004), Admin (5005), Notification (5006), Gateway (5000)
 # Infrastructure: SQL Server 2022 (14333), Apache Kafka (9092, 29092)
 # ==============================================================================
 
@@ -200,10 +200,14 @@ services:
       Jwt__Issuer: "https://identity.falumni.local"
       Jwt__Audience: "falumni-services"
       Services__UserService__Url: "http://user-service:5001"
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__GroupId: "f-alumni-admin-service-v1"
     ports:
       - "5005:5005"
     depends_on:
       sqlserver:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       user-service:
         condition: service_started
@@ -211,7 +215,36 @@ services:
       - falumni-network
 
   # ----------------------------------------------------------------------------
-  # 8. YARP API Gateway (Reverse Proxy Central Entrypoint: port 5000)
+  # 8. Notification Service (Real-Time SignalR & Kafka Event Consumer: port 5006)
+  # ----------------------------------------------------------------------------
+  notification-service:
+    build:
+      context: ./f-alumni-notification-service
+      dockerfile: Dockerfile
+    container_name: falumni-notification-service
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: "${ASPNETCORE_ENVIRONMENT:-Development}"
+      ASPNETCORE_URLS: "http://+:5006"
+      DatabaseProvider: "SqlServer"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=FAlumni_Notification_Db;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd!};TrustServerCertificate=True;"
+      Jwt__Key: "${JWT_KEY:-falumni-production-shared-jwt-secret-key-2026-min-32-bytes}"
+      Jwt__Issuer: "https://identity.falumni.local"
+      Jwt__Audience: "falumni-services"
+      Kafka__BootstrapServers: "kafka:9092"
+      Kafka__GroupId: "f-alumni-notification-service-v1"
+    ports:
+      - "5006:5006"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - falumni-network
+
+  # ----------------------------------------------------------------------------
+  # 9. YARP API Gateway (Reverse Proxy Central Entrypoint: port 5000)
   # ----------------------------------------------------------------------------
   api-gateway:
     build:
@@ -227,6 +260,7 @@ services:
       ReverseProxy__Clusters__forum-cluster__Destinations__forum-service__Address: "http://forum-service:5003"
       ReverseProxy__Clusters__ai-cluster__Destinations__ai-service__Address: "http://ai-service:5004"
       ReverseProxy__Clusters__admin-cluster__Destinations__admin-service__Address: "http://admin-service:5005"
+      ReverseProxy__Clusters__notification-cluster__Destinations__notification-service__Address: "http://notification-service:5006"
     ports:
       - "5000:5000"
     depends_on:
@@ -239,6 +273,8 @@ services:
       ai-service:
         condition: service_started
       admin-service:
+        condition: service_started
+      notification-service:
         condition: service_started
     networks:
       - falumni-network

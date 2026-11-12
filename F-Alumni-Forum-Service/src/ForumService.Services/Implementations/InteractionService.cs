@@ -1,3 +1,4 @@
+using Contracts.Events;
 using Microsoft.Extensions.Logging;
 using ForumService.Repositories.Entities;
 using ForumService.Repositories.Interfaces;
@@ -14,18 +15,26 @@ public class InteractionService : IInteractionService
     private readonly IInteractionRepository _interactionRepository;
     private readonly IPostRepository _postRepository;
     private readonly ILogger<InteractionService> _logger;
+    private readonly IKafkaProducerService? _kafkaProducer;
 
     public InteractionService(
         IInteractionRepository interactionRepository,
         IPostRepository postRepository,
-        ILogger<InteractionService> logger)
+        ILogger<InteractionService> logger,
+        IKafkaProducerService? kafkaProducer = null)
     {
         _interactionRepository = interactionRepository;
         _postRepository = postRepository;
         _logger = logger;
+        _kafkaProducer = kafkaProducer;
     }
 
-    public async Task<bool> ToggleReactionAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
+    public Task<bool> ToggleReactionAsync(Guid postId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        return ToggleReactionAsync(postId, userId, actorName: null, cancellationToken);
+    }
+
+    public async Task<bool> ToggleReactionAsync(Guid postId, Guid userId, string? actorName, CancellationToken cancellationToken = default)
     {
         var post = await _postRepository.GetByIdAsync(postId, cancellationToken);
         if (post == null)
@@ -35,6 +44,21 @@ public class InteractionService : IInteractionService
 
         var liked = await _interactionRepository.ToggleReactionAsync(postId, userId, "Like", cancellationToken);
         _logger.LogInformation("User {UserId} toggled reaction on post {PostId}: {Liked}", userId, postId, liked);
+
+        if (liked && post.AuthorId != userId && _kafkaProducer != null)
+        {
+            await _kafkaProducer.PublishPostReactedAsync(new PostReactedEventV1
+            {
+                PostId = post.Id,
+                PostTitle = post.Title,
+                PostAuthorId = post.AuthorId,
+                ActorUserId = userId,
+                ActorName = string.IsNullOrWhiteSpace(actorName) ? "Một người dùng" : actorName.Trim(),
+                ReactionType = "Like",
+                OccurredAt = DateTime.UtcNow
+            }, CancellationToken.None);
+        }
+
         return liked;
     }
 
@@ -53,6 +77,9 @@ public class InteractionService : IInteractionService
 
     public async Task<PagedResponse<PostResponse>> GetMyBookmarksAsync(Guid userId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var (items, totalCount) = await _interactionRepository.GetBookmarkedPostsAsync(userId, page, pageSize, cancellationToken);
         var responses = items.Select(p => new PostResponse
         {
@@ -82,19 +109,52 @@ public class InteractionService : IInteractionService
 
     public async Task CreateReportAsync(CreateReportRequest request, Guid reporterId, string reporterName, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ArgumentException("Lý do báo cáo không được để trống.", nameof(request));
+        }
+
+        var targetType = string.IsNullOrWhiteSpace(request.TargetType) ? "Post" : request.TargetType.Trim();
+        var cleanReporterName = string.IsNullOrWhiteSpace(reporterName) ? "Một người dùng" : reporterName.Trim();
+
         var report = new Report
         {
-            TargetType = request.TargetType,
+            TargetType = targetType,
             TargetId = request.TargetId,
             ReporterId = reporterId,
-            ReporterName = reporterName,
+            ReporterName = cleanReporterName,
             Reason = request.Reason.Trim(),
             Details = request.Details?.Trim(),
+            Status = "Pending",
             CreatedAt = DateTime.UtcNow
         };
 
-        await _interactionRepository.AddReportAsync(report, cancellationToken);
-        _logger.LogInformation("User {ReporterId} reported {TargetType} {TargetId}", reporterId, request.TargetType, request.TargetId);
+        var savedReport = await _interactionRepository.AddReportAsync(report, cancellationToken);
+        _logger.LogInformation("User {ReporterId} reported {TargetType} {TargetId}", reporterId, targetType, request.TargetId);
+
+        if (_kafkaProducer != null)
+        {
+            try
+            {
+                await _kafkaProducer.PublishReportCreatedAsync(new ReportCreatedEventV1
+                {
+                    ReportId = savedReport.Id,
+                    TargetType = savedReport.TargetType,
+                    TargetId = savedReport.TargetId,
+                    ReporterId = savedReport.ReporterId,
+                    ReporterName = savedReport.ReporterName,
+                    Reason = savedReport.Reason,
+                    Details = savedReport.Details,
+                    Status = savedReport.Status,
+                    CreatedAt = savedReport.CreatedAt
+                }, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not publish ReportCreatedEventV1 for report {ReportId}. Continuing gracefully.", savedReport.Id);
+            }
+        }
     }
 
     public async Task<IReadOnlyList<CategoryResponse>> GetCategoriesAsync(CancellationToken cancellationToken = default)

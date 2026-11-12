@@ -314,4 +314,38 @@ public class JwtAuthenticationTests : IClassFixture<CustomWebApplicationFactory>
 
         Assert.Contains("too short", ex.Message);
     }
+
+    [Fact]
+    public async Task ForumBookmarksAndPosts_InvalidPaginationAndBookmarkToggle_Return200WithAlumniRole()
+    {
+        var alumniToken = GenerateTestJwt(Guid.NewGuid().ToString(), "ALUMNI");
+
+        using var createReq = new HttpRequestMessage(HttpMethod.Post, "/api/v1/posts")
+        {
+            Content = JsonContent.Create(new CreatePostRequest
+            {
+                Title = "Bookmark Verification Post",
+                Content = "Ensuring GetBookmarkedPostsAsync loads Images and Tags cleanly.",
+                PostType = "Sharing"
+            })
+        };
+        createReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", alumniToken);
+        var createRes = await _client.SendAsync(createReq);
+        Assert.Equal(HttpStatusCode.Created, createRes.StatusCode);
+        var created = await createRes.Content.ReadFromJsonAsync<PostResponse>();
+        Assert.NotNull(created);
+
+        using var bookmarkReq = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/posts/{created.Id}/bookmark");
+        bookmarkReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", alumniToken);
+        var bookmarkRes = await _client.SendAsync(bookmarkReq);
+        Assert.Equal(HttpStatusCode.OK, bookmarkRes.StatusCode);
+
+        using var myBookmarksReq = new HttpRequestMessage(HttpMethod.Get, "/api/v1/bookmarks/me?page=0&pageSize=-5");
+        myBookmarksReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", alumniToken);
+        var myBookmarksRes = await _client.SendAsync(myBookmarksReq);
+        Assert.Equal(HttpStatusCode.OK, myBookmarksRes.StatusCode);
+
+        var postsRes = await _client.GetAsync("/api/v1/posts?page=0&pageSize=-5");
+        Assert.Equal(HttpStatusCode.OK, postsRes.StatusCode);
+    }
 }

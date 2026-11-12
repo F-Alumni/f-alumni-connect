@@ -180,4 +180,121 @@ public class AuthAndUsersEndpointTests : IClassFixture<CustomWebApplicationFacto
         var unsuspendRes = await _client.SendAsync(unsuspendReq);
         Assert.Equal(HttpStatusCode.OK, unsuspendRes.StatusCode);
     }
+
+    [Fact]
+    public async Task Directory_InvalidPaginationAndUnknownUser_DoNotReturn500()
+    {
+        var dirRes = await _client.GetAsync("/api/v1/users/directory?pageNumber=0&pageSize=-5");
+        Assert.Equal(HttpStatusCode.OK, dirRes.StatusCode);
+
+        var unknownRes = await _client.GetAsync($"/api/v1/users/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, unknownRes.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_WithNullOptionalFields_DoesNotThrow500()
+    {
+        var loginRes = await _client.PostAsJsonAsync("/api/v1/auth/login", new LoginRequest
+        {
+            Email = "nguyenvana@fpt.edu.vn",
+            Password = "Password@123"
+        });
+        Assert.Equal(HttpStatusCode.OK, loginRes.StatusCode);
+        var tokens = await loginRes.Content.ReadFromJsonAsync<AuthTokenResponse>();
+        Assert.NotNull(tokens);
+
+        using var req = new HttpRequestMessage(HttpMethod.Put, "/api/v1/users/me")
+        {
+            Content = new StringContent(
+                """{"fullName":"Nguyen Van A","studentCode":null,"major":null,"currentCompany":null,"jobTitle":null,"bio":null,"skills":null,"linkedInUrl":null,"gitHubUrl":null,"phoneNumber":null}""",
+                System.Text.Encoding.UTF8,
+                "application/json")
+        };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+
+        var res = await _client.SendAsync(req);
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetUsers_CampusAliasesAndVietnameseNames_FilterCorrectly()
+    {
+        // 1. Seeded HCM users should be returned when querying with Vietnamese/alias HCM forms
+        var hcmViRes = await _client.GetAsync("/api/v1/users?campus=" + Uri.EscapeDataString("Hồ Chí Minh"));
+        Assert.Equal(HttpStatusCode.OK, hcmViRes.StatusCode);
+        var hcmViPage = await hcmViRes.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+        Assert.NotNull(hcmViPage);
+        Assert.Contains(hcmViPage.Items, u => u.Email == "nguyenvana@fpt.edu.vn");
+
+        var hcmAliasRes = await _client.GetAsync("/api/v1/users?campus=" + Uri.EscapeDataString("FU-HCM"));
+        Assert.Equal(HttpStatusCode.OK, hcmAliasRes.StatusCode);
+        var hcmAliasPage = await hcmAliasRes.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+        Assert.NotNull(hcmAliasPage);
+        Assert.Contains(hcmAliasPage.Items, u => u.Email == "nguyenvana@fpt.edu.vn");
+
+        // 2. Register and verify a Hoa Lac user and a Da Nang user
+        var hoaLacEmail = $"hoalac.{Guid.NewGuid():N}@fpt.edu.vn";
+        await RegisterAndVerifyActiveUserAsync(hoaLacEmail, "Hoa Lac Alumni", "Hoa Lac");
+
+        var daNangEmail = $"danang.{Guid.NewGuid():N}@fpt.edu.vn";
+        await RegisterAndVerifyActiveUserAsync(daNangEmail, "Da Nang Alumni", "Đà Nẵng");
+
+        // 3. Query Hoa Lac using Vietnamese accented form, Ha Noi, and FU-HL aliases
+        foreach (var variant in new[] { "Hòa Lạc", "Hoa Lac", "Hà Nội", "FU-HL" })
+        {
+            var res = await _client.GetAsync("/api/v1/users?pageSize=50&campus=" + Uri.EscapeDataString(variant));
+            Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+            var page = await res.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+            Assert.NotNull(page);
+            Assert.Contains(page.Items, u => u.Email == hoaLacEmail);
+            Assert.DoesNotContain(page.Items, u => u.Email == "nguyenvana@fpt.edu.vn");
+            Assert.DoesNotContain(page.Items, u => u.Email == daNangEmail);
+        }
+
+        // 4. Query /api/v1/users/directory alias endpoint as well
+        var dirRes = await _client.GetAsync("/api/v1/users/directory?pageSize=50&campus=" + Uri.EscapeDataString("Da Nang"));
+        Assert.Equal(HttpStatusCode.OK, dirRes.StatusCode);
+        var dirPage = await dirRes.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+        Assert.NotNull(dirPage);
+        Assert.Contains(dirPage.Items, u => u.Email == daNangEmail);
+
+        // 5. Search query with Vietnamese campus name should match equivalent campus
+        var searchRes = await _client.GetAsync("/api/v1/users?pageSize=50&search=" + Uri.EscapeDataString("Hòa Lạc"));
+        Assert.Equal(HttpStatusCode.OK, searchRes.StatusCode);
+        var searchPage = await searchRes.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+        Assert.NotNull(searchPage);
+        Assert.Contains(searchPage.Items, u => u.Email == hoaLacEmail);
+
+        // 6. Unknown campus returns 200 OK with empty items
+        var unknownRes = await _client.GetAsync("/api/v1/users?campus=" + Uri.EscapeDataString("UnknownCampusXYZ"));
+        Assert.Equal(HttpStatusCode.OK, unknownRes.StatusCode);
+        var unknownPage = await unknownRes.Content.ReadFromJsonAsync<PagedResponse<UserProfileResponse>>();
+        Assert.NotNull(unknownPage);
+        Assert.Empty(unknownPage.Items);
+        Assert.Equal(0, unknownPage.TotalCount);
+    }
+
+    private async Task RegisterAndVerifyActiveUserAsync(string email, string fullName, string campus)
+    {
+        var regRes = await _client.PostAsJsonAsync("/api/v1/auth/register", new RegisterRequest
+        {
+            Email = email,
+            Password = "StrongPassword@123",
+            FullName = fullName,
+            Campus = campus,
+            GraduationYear = 2024,
+            Major = "Software Engineering",
+            AccountType = "Alumni"
+        });
+        Assert.Equal(HttpStatusCode.Created, regRes.StatusCode);
+        var regBody = await regRes.Content.ReadFromJsonAsync<RegisterResponse>();
+        Assert.NotNull(regBody);
+
+        var verifyRes = await _client.PostAsJsonAsync("/api/v1/auth/verify-email", new VerifyEmailRequest
+        {
+            Email = email,
+            OtpCode = regBody.VerificationOtpPreview!
+        });
+        Assert.Equal(HttpStatusCode.OK, verifyRes.StatusCode);
+    }
 }

@@ -42,7 +42,7 @@ public class SendMessageRequest
     public string? AttachmentType { get; set; }
 
     /// <summary>
-    /// Optional sender UserId override when testing without JWT or via internal call.
+    /// Deprecated/ignored: sender identity is always resolved from authenticated JWT claims.
     /// </summary>
     public Guid? SenderUserId { get; set; }
 }

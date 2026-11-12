@@ -14,6 +14,9 @@
   <ItemGroup>
     <Compile Include="..\..\contracts\events\EventEnvelope.cs" Link="Contracts\EventEnvelope.cs" />
     <Compile Include="..\..\contracts\events\PostCreatedEventV1.cs" Link="Contracts\PostCreatedEventV1.cs" />
+    <Compile Include="..\..\contracts\events\PostReactedEventV1.cs" Link="Contracts\PostReactedEventV1.cs" />
+    <Compile Include="..\..\contracts\events\CommentCreatedEventV1.cs" Link="Contracts\CommentCreatedEventV1.cs" />
+    <Compile Include="..\..\contracts\events\ReportCreatedEventV1.cs" Link="Contracts\ReportCreatedEventV1.cs" />
   </ItemGroup>
 
   <PropertyGroup>

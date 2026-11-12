@@ -6,15 +6,24 @@ public static class CurrentUserExtensions
 {
     public static Guid GetUserId(this ClaimsPrincipal user)
     {
-        var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? user.FindFirst("sub")?.Value;
+        var sub = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrWhiteSpace(sub))
+        {
+            sub = user.FindFirst("sub")?.Value;
+        }
 
-        if (Guid.TryParse(sub, out var guid))
+        if (Guid.TryParse(sub, out var guid) && guid != Guid.Empty)
         {
             return guid;
         }
 
         return Guid.Empty;
+    }
+
+    public static bool TryGetUserId(this ClaimsPrincipal user, out Guid userId)
+    {
+        userId = user.GetUserId();
+        return userId != Guid.Empty;
     }
 
     public static string GetEmail(this ClaimsPrincipal user)

@@ -65,6 +65,9 @@ public class AuditLogRepository : IAuditLogRepository
             query = query.Where(x => x.CreatedAtUtc <= toDate.Value);
         }
 
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 5000);
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         var items = await query

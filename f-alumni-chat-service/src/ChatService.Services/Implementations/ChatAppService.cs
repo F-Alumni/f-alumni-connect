@@ -102,10 +102,19 @@ public class ChatAppService : IChatAppService
         return MapToConversationResponse(conversation);
     }
 
-    public async Task<ConversationResponse?> GetConversationByIdAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    public async Task<ConversationResponse?> GetConversationByIdAsync(
+        Guid conversationId,
+        Guid currentUserId,
+        CancellationToken cancellationToken = default)
     {
         var conversation = await _chatRepository.GetConversationByIdAsync(conversationId, cancellationToken);
-        return conversation is null ? null : MapToConversationResponse(conversation);
+        if (conversation is null)
+        {
+            return null;
+        }
+
+        EnsureParticipant(conversation, currentUserId);
+        return MapToConversationResponse(conversation);
     }
 
     public async Task<PagedResponse<ConversationResponse>> GetUserConversationsAsync(
@@ -146,23 +155,18 @@ public class ChatAppService : IChatAppService
             throw new ArgumentException("Message must contain either text content or an attachment URL.");
         }
 
-        var conversation = await _chatRepository.GetConversationByIdAsync(conversationId, cancellationToken);
-        if (conversation is null)
-        {
-            throw new KeyNotFoundException($"Conversation '{conversationId}' was not found.");
-        }
-
-        var senderParticipant = conversation.Participants.FirstOrDefault(p => p.UserId == senderUserId);
+        var conversation = await GetExistingConversationOrThrowAsync(conversationId, cancellationToken);
+        var senderParticipant = EnsureParticipant(conversation, senderUserId);
         var senderProfile = await _profileLookupService.GetParticipantSummaryAsync(
             conversationId,
             senderUserId,
             strictGrpc: false,
             cancellationToken);
 
-        var displayName = !string.IsNullOrWhiteSpace(senderParticipant?.DisplayName)
+        var displayName = !string.IsNullOrWhiteSpace(senderParticipant.DisplayName)
             ? senderParticipant.DisplayName
             : senderProfile.DisplayName;
-        var avatarUrl = !string.IsNullOrWhiteSpace(senderParticipant?.AvatarUrl)
+        var avatarUrl = !string.IsNullOrWhiteSpace(senderParticipant.AvatarUrl)
             ? senderParticipant.AvatarUrl
             : senderProfile.AvatarUrl;
 
@@ -206,6 +210,7 @@ public class ChatAppService : IChatAppService
 
     public async Task<PagedResponse<ChatMessageResponse>> GetMessagesAsync(
         Guid conversationId,
+        Guid currentUserId,
         string? search = null,
         int page = 1,
         int pageSize = 30,
@@ -214,13 +219,10 @@ public class ChatAppService : IChatAppService
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var conversation = await _chatRepository.GetConversationByIdAsync(conversationId, cancellationToken);
-        if (conversation is null)
-        {
-            throw new KeyNotFoundException($"Conversation '{conversationId}' was not found.");
-        }
+        var conversation = await GetExistingConversationOrThrowAsync(conversationId, cancellationToken);
+        EnsureParticipant(conversation, currentUserId);
 
-        var participantMap = conversation.Participants.ToDictionary(p => p.UserId);
+        var participantMap = BuildParticipantMap(conversation.Participants);
         var (items, totalCount) = await _chatRepository.GetMessagesPagedAsync(
             conversationId, search, page, pageSize, cancellationToken);
 
@@ -251,11 +253,8 @@ public class ChatAppService : IChatAppService
         Guid readerUserId,
         CancellationToken cancellationToken = default)
     {
-        var conversation = await _chatRepository.GetConversationByIdAsync(conversationId, cancellationToken);
-        if (conversation is null)
-        {
-            throw new KeyNotFoundException($"Conversation '{conversationId}' was not found.");
-        }
+        var conversation = await GetExistingConversationOrThrowAsync(conversationId, cancellationToken);
+        EnsureParticipant(conversation, readerUserId);
 
         var markedCount = await _chatRepository.MarkMessagesAsReadAsync(conversationId, readerUserId, cancellationToken);
         var now = DateTime.UtcNow;
@@ -269,17 +268,14 @@ public class ChatAppService : IChatAppService
         };
     }
 
-    public async Task<ParticipantDto?> UpdateConversationSettingsAsync(
+    public async Task<ParticipantDto> UpdateConversationSettingsAsync(
         Guid conversationId,
         Guid userId,
         UpdateConversationSettingsRequest request,
         CancellationToken cancellationToken = default)
     {
-        var participant = await _chatRepository.GetParticipantAsync(conversationId, userId, cancellationToken);
-        if (participant is null)
-        {
-            return null;
-        }
+        var conversation = await GetExistingConversationOrThrowAsync(conversationId, cancellationToken);
+        var participant = EnsureParticipant(conversation, userId);
 
         if (request.IsMuted.HasValue)
         {
@@ -306,9 +302,46 @@ public class ChatAppService : IChatAppService
         };
     }
 
+    public async Task EnsureParticipantAsync(
+        Guid conversationId,
+        Guid userId,
+        CancellationToken cancellationToken = default)
+    {
+        var conversation = await GetExistingConversationOrThrowAsync(conversationId, cancellationToken);
+        EnsureParticipant(conversation, userId);
+    }
+
+    private async Task<Conversation> GetExistingConversationOrThrowAsync(
+        Guid conversationId,
+        CancellationToken cancellationToken)
+    {
+        var conversation = await _chatRepository.GetConversationByIdAsync(conversationId, cancellationToken);
+        if (conversation is null)
+        {
+            throw new KeyNotFoundException($"Conversation '{conversationId}' was not found.");
+        }
+
+        return conversation;
+    }
+
+    private static ConversationParticipant EnsureParticipant(Conversation conversation, Guid userId)
+    {
+        var participant = conversation.Participants.FirstOrDefault(p => p.UserId == userId);
+        if (participant is null)
+        {
+            throw new UnauthorizedAccessException(
+                $"User '{userId}' is not a participant in conversation '{conversation.Id}'.");
+        }
+
+        return participant;
+    }
+
+    private static Dictionary<Guid, ConversationParticipant> BuildParticipantMap(IEnumerable<ConversationParticipant> participants)
+        => participants.GroupBy(p => p.UserId).ToDictionary(g => g.Key, g => g.First());
+
     private static ConversationResponse MapToConversationResponse(Conversation conversation)
     {
-        var participantMap = conversation.Participants.ToDictionary(p => p.UserId);
+        var participantMap = BuildParticipantMap(conversation.Participants);
         var latestMsg = conversation.Messages.OrderByDescending(m => m.CreatedAtUtc).FirstOrDefault();
 
         ChatMessageResponse? lastMessageDto = null;

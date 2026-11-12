@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using UserService.Services.Exceptions;
 
 namespace UserService.Api.Middlewares;
@@ -35,9 +36,9 @@ public class GlobalExceptionHandlingMiddleware
     {
         var statusCode = exception switch
         {
-            NotFoundException => HttpStatusCode.NotFound,
-            ConflictException => HttpStatusCode.Conflict,
-            UnauthorizedException => HttpStatusCode.Unauthorized,
+            NotFoundException or KeyNotFoundException => HttpStatusCode.NotFound,
+            ConflictException or DbUpdateException => HttpStatusCode.Conflict,
+            UnauthorizedException or UnauthorizedAccessException => HttpStatusCode.Unauthorized,
             ForbiddenException => HttpStatusCode.Forbidden,
             ArgumentException or InvalidOperationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError

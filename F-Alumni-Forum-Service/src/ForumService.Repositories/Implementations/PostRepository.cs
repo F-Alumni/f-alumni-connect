@@ -69,6 +69,9 @@ public class PostRepository : IPostRepository
                                      p.Tags.Any(t => t.TagName.ToLower().Contains(s)));
         }
 
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var totalCount = await query.CountAsync(cancellationToken);
 
         query = sort.ToLower() switch
@@ -93,6 +96,9 @@ public class PostRepository : IPostRepository
             .Include(p => p.Tags)
             .Where(p => p.AuthorId == authorId && !p.IsHidden)
             .OrderByDescending(p => p.CreatedAt);
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);

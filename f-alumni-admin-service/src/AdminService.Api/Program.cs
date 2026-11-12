@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using AdminService.Api.Data;
 using AdminService.Api.Middlewares;
+using AdminService.Api.Workers;
 using AdminService.Services.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,6 +79,7 @@ builder.Services.AddAuthorization(options =>
 
 // 4. Add Application Layer (Services & Repositories)
 builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddHostedService<ReportCreatedKafkaConsumerWorker>();
 
 var app = builder.Build();
 

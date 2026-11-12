@@ -82,18 +82,23 @@ public class InteractionRepository : IInteractionRepository
     {
         var query = _dbContext.Bookmarks
             .AsNoTracking()
-            .Where(b => b.UserId == userId && !b.Post!.IsHidden)
-            .OrderByDescending(b => b.CreatedAt)
-            .Select(b => b.Post!);
+            .Where(b => b.UserId == userId && b.Post != null && !b.Post.IsHidden);
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .Include(p => p.Images)
-            .Include(p => p.Tags)
+        var bookmarks = await query
+            .Include(b => b.Post!)
+                .ThenInclude(p => p.Images)
+            .Include(b => b.Post!)
+                .ThenInclude(p => p.Tags)
+            .OrderByDescending(b => b.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        var items = bookmarks.Select(b => b.Post!).ToList();
         return (items, totalCount);
     }
 

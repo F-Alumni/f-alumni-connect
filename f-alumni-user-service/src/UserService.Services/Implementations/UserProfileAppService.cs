@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using UserService.Repositories.Entities;
+using UserService.Repositories.Helpers;
 using UserService.Repositories.Interfaces;
 using UserService.Services.DTOs.Common;
 using UserService.Services.DTOs.Requests;
@@ -46,6 +47,11 @@ public class UserProfileAppService : IUserProfileAppService
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), userId);
 
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            throw new ArgumentException("Full name is required.");
+        }
+
         user.FullName = request.FullName.Trim();
         user.Profile ??= new UserProfile
         {
@@ -62,21 +68,22 @@ public class UserProfileAppService : IUserProfileAppService
             user.Profile.AvatarUrl = request.AvatarUrl.Trim();
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Campus))
+        var normalizedCampus = CampusNormalizer.NormalizeOrNull(request.Campus);
+        if (normalizedCampus is not null)
         {
-            user.Profile.Campus = request.Campus.Trim();
+            user.Profile.Campus = normalizedCampus;
         }
 
-        user.Profile.StudentCode = request.StudentCode.Trim();
+        user.Profile.StudentCode = request.StudentCode?.Trim() ?? string.Empty;
         user.Profile.GraduationYear = request.GraduationYear;
-        user.Profile.Major = request.Major.Trim();
-        user.Profile.CurrentCompany = request.CurrentCompany.Trim();
-        user.Profile.JobTitle = request.JobTitle.Trim();
-        user.Profile.Bio = request.Bio.Trim();
-        user.Profile.Skills = request.Skills.Trim();
-        user.Profile.LinkedInUrl = request.LinkedInUrl.Trim();
-        user.Profile.GitHubUrl = request.GitHubUrl.Trim();
-        user.Profile.PhoneNumber = request.PhoneNumber.Trim();
+        user.Profile.Major = request.Major?.Trim() ?? string.Empty;
+        user.Profile.CurrentCompany = request.CurrentCompany?.Trim() ?? string.Empty;
+        user.Profile.JobTitle = request.JobTitle?.Trim() ?? string.Empty;
+        user.Profile.Bio = request.Bio?.Trim() ?? string.Empty;
+        user.Profile.Skills = request.Skills?.Trim() ?? string.Empty;
+        user.Profile.LinkedInUrl = request.LinkedInUrl?.Trim() ?? string.Empty;
+        user.Profile.GitHubUrl = request.GitHubUrl?.Trim() ?? string.Empty;
+        user.Profile.PhoneNumber = request.PhoneNumber?.Trim() ?? string.Empty;
 
         if (!string.IsNullOrWhiteSpace(request.GoogleCalendarUrl))
         {
@@ -106,6 +113,11 @@ public class UserProfileAppService : IUserProfileAppService
             DisplayName = user.FullName
         };
 
+        if (string.IsNullOrWhiteSpace(request.AvatarUrl))
+        {
+            throw new ArgumentException("Avatar URL is required.");
+        }
+
         user.Profile.AvatarUrl = request.AvatarUrl.Trim();
         await _userRepository.UpdateAsync(user, cancellationToken);
 
@@ -129,6 +141,11 @@ public class UserProfileAppService : IUserProfileAppService
             UserId = user.Id,
             DisplayName = user.FullName
         };
+
+        if (string.IsNullOrWhiteSpace(request.GoogleCalendarUrl))
+        {
+            throw new ArgumentException("Google Calendar URL is required.");
+        }
 
         user.Profile.GoogleCalendarUrl = request.GoogleCalendarUrl.Trim();
         await _userRepository.UpdateAsync(user, cancellationToken);
@@ -268,6 +285,11 @@ public class UserProfileAppService : IUserProfileAppService
 
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), userId);
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ArgumentException("Suspension reason is required.");
+        }
 
         user.Status = "Suspended";
         user.SuspensionReason = request.Reason.Trim();

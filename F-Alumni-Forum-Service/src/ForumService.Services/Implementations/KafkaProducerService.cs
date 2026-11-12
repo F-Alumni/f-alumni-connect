@@ -20,18 +20,72 @@ public class KafkaProducerService : IKafkaProducerService
             ?? "localhost:29092";
     }
 
-    public async Task PublishPostCreatedAsync(PostCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+    public Task PublishPostCreatedAsync(PostCreatedEventV1 eventData, CancellationToken cancellationToken = default)
     {
-        var topic = PostCreatedEventV1.DefaultTopic;
-        var envelope = new EventEnvelope<PostCreatedEventV1>(
-            eventType: PostCreatedEventV1.EventTypeName,
-            version: PostCreatedEventV1.CurrentVersion,
+        return PublishEnvelopeAsync(
+            PostCreatedEventV1.DefaultTopic,
+            PostCreatedEventV1.EventTypeName,
+            PostCreatedEventV1.CurrentVersion,
+            eventData.PostId.ToString(),
+            eventData,
+            cancellationToken);
+    }
+
+    public Task PublishPostReactedAsync(PostReactedEventV1 eventData, CancellationToken cancellationToken = default)
+    {
+        return PublishEnvelopeAsync(
+            PostReactedEventV1.DefaultTopic,
+            PostReactedEventV1.EventTypeName,
+            PostReactedEventV1.CurrentVersion,
+            eventData.PostId.ToString(),
+            eventData,
+            cancellationToken);
+    }
+
+    public Task PublishCommentCreatedAsync(CommentCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+    {
+        return PublishEnvelopeAsync(
+            CommentCreatedEventV1.DefaultTopic,
+            CommentCreatedEventV1.EventTypeName,
+            CommentCreatedEventV1.CurrentVersion,
+            eventData.PostId.ToString(),
+            eventData,
+            cancellationToken);
+    }
+
+    public Task PublishReportCreatedAsync(ReportCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+    {
+        return PublishEnvelopeAsync(
+            ReportCreatedEventV1.DefaultTopic,
+            ReportCreatedEventV1.EventTypeName,
+            ReportCreatedEventV1.CurrentVersion,
+            eventData.ReportId.ToString(),
+            eventData,
+            cancellationToken);
+    }
+
+    private async Task PublishEnvelopeAsync<T>(
+        string topic,
+        string eventType,
+        string version,
+        string partitionKey,
+        T eventData,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_bootstrapServers))
+        {
+            return;
+        }
+
+        var envelope = new EventEnvelope<T>(
+            eventType: eventType,
+            version: version,
             producer: "f-alumni-forum-service",
-            data: eventData
+            data: eventData,
+            correlationId: partitionKey
         );
 
         var jsonPayload = JsonSerializer.Serialize(envelope);
-        var partitionKey = eventData.PostId.ToString();
 
         try
         {
@@ -49,11 +103,11 @@ public class KafkaProducerService : IKafkaProducerService
                 Value = jsonPayload
             }, cancellationToken);
 
-            _logger.LogInformation("Successfully published PostCreatedEvent to Kafka topic {Topic} at offset {Offset}", topic, deliveryResult.Offset);
+            _logger.LogInformation("Successfully published {EventType} to Kafka topic {Topic} at offset {Offset}", eventType, topic, deliveryResult.Offset);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Could not publish event to Kafka ({BootstrapServers}): {Message}. Continuing gracefully.", _bootstrapServers, ex.Message);
+            _logger.LogWarning("Could not publish {EventType} to Kafka ({BootstrapServers}): {Message}. Continuing gracefully.", eventType, _bootstrapServers, ex.Message);
         }
     }
 }

@@ -29,7 +29,8 @@ public class ReactionsController : ControllerBase
     public async Task<IActionResult> ToggleLike([FromRoute] Guid postId, CancellationToken cancellationToken = default)
     {
         var userId = User.GetUserId();
-        var isLiked = await _interactionService.ToggleReactionAsync(postId, userId, cancellationToken);
+        var fullName = User.GetFullName();
+        var isLiked = await _interactionService.ToggleReactionAsync(postId, userId, fullName, cancellationToken);
 
         // Real-time broadcast reaction event
         await _hubContext.Clients.Group($"post_{postId}").SendAsync("ReceiveReaction", new

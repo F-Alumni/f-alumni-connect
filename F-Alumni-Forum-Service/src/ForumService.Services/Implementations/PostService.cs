@@ -31,6 +31,16 @@ public class PostService : IPostService
 
     public async Task<PostResponse> CreatePostAsync(CreatePostRequest request, Guid authorId, string authorName, string authorAvatarUrl, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new ArgumentException("Tiêu đề bài viết không được để trống.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Nội dung bài viết không được để trống.");
+        }
+
         var post = new Post
         {
             AuthorId = authorId,
@@ -38,9 +48,9 @@ public class PostService : IPostService
             AuthorAvatarUrl = authorAvatarUrl,
             Title = request.Title.Trim(),
             Content = request.Content.Trim(),
-            PostType = request.PostType,
-            Major = request.Major,
-            Campus = request.Campus,
+            PostType = string.IsNullOrWhiteSpace(request.PostType) ? "Sharing" : request.PostType.Trim(),
+            Major = string.IsNullOrWhiteSpace(request.Major) ? "All" : request.Major.Trim(),
+            Campus = string.IsNullOrWhiteSpace(request.Campus) ? "All" : request.Campus.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -118,6 +128,9 @@ public class PostService : IPostService
         Guid? currentUserId = null,
         CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var (items, totalCount) = await _postRepository.GetFeedAsync(campus, major, postType, search, isAnswered, sort, page, pageSize, cancellationToken);
 
         var responses = new List<PostResponse>();
@@ -136,6 +149,9 @@ public class PostService : IPostService
 
     public async Task<PagedResponse<PostResponse>> GetMyPostsAsync(Guid authorId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var (items, totalCount) = await _postRepository.GetByAuthorAsync(authorId, page, pageSize, cancellationToken);
         var responses = items.Select(MapToResponse).ToList();
         return new PagedResponse<PostResponse>(responses, totalCount, page, pageSize);
@@ -143,6 +159,16 @@ public class PostService : IPostService
 
     public async Task<PostResponse> UpdatePostAsync(Guid id, UpdatePostRequest request, Guid currentUserId, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new ArgumentException("Tiêu đề bài viết không được để trống.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Nội dung bài viết không được để trống.");
+        }
+
         var post = await _postRepository.GetByIdAsync(id, cancellationToken);
         if (post == null)
         {

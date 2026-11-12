@@ -301,14 +301,38 @@ public class UsersController : ControllerBase
                 Bytes = bytes
             });
         }
+        catch (TaskCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            _logger.LogWarning(ex, "Cloudinary upload timed out.");
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new ProblemDetails
+            {
+                Title = "Quá thời gian tải ảnh",
+                Detail = "Kết nối tới dịch vụ lưu trữ hình ảnh Cloudinary bị quá thời gian chờ.",
+                Status = StatusCodes.Status504GatewayTimeout
+            });
+        }
+        catch (OperationCanceledException)
+        {
+            return StatusCode(StatusCodes.Status499ClientClosedRequest);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to reach Cloudinary service during upload.");
+            return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
+            {
+                Title = "Lỗi kết nối lưu trữ hình ảnh",
+                Detail = "Không thể kết nối tới dịch vụ lưu trữ hình ảnh Cloudinary.",
+                Status = StatusCodes.Status502BadGateway
+            });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error uploading media to Cloudinary.");
-            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            return StatusCode(StatusCodes.Status502BadGateway, new ProblemDetails
             {
-                Title = "Lỗi máy chủ",
-                Detail = "Đã xảy ra lỗi trong quá trình xử lý tải lên tệp tin.",
-                Status = StatusCodes.Status500InternalServerError
+                Title = "Lỗi lưu trữ hình ảnh",
+                Detail = "Dịch vụ tải lên hình ảnh gặp sự cố khi xử lý tệp tin.",
+                Status = StatusCodes.Status502BadGateway
             });
         }
     }

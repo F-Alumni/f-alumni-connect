@@ -9,45 +9,45 @@ public class UpdateUserProfileRequest
     public string FullName { get; set; } = string.Empty;
 
     [StringLength(150)]
-    public string DisplayName { get; set; } = string.Empty;
+    public string? DisplayName { get; set; } = string.Empty;
 
     [StringLength(500)]
-    public string AvatarUrl { get; set; } = string.Empty;
+    public string? AvatarUrl { get; set; } = string.Empty;
 
     [StringLength(30)]
-    public string StudentCode { get; set; } = string.Empty;
+    public string? StudentCode { get; set; } = string.Empty;
 
     [StringLength(50)]
-    public string Campus { get; set; } = "HCM";
+    public string? Campus { get; set; } = "HCM";
 
     public int? GraduationYear { get; set; }
 
     [StringLength(100)]
-    public string Major { get; set; } = string.Empty;
+    public string? Major { get; set; } = string.Empty;
 
     [StringLength(150)]
-    public string CurrentCompany { get; set; } = string.Empty;
+    public string? CurrentCompany { get; set; } = string.Empty;
 
     [StringLength(150)]
-    public string JobTitle { get; set; } = string.Empty;
+    public string? JobTitle { get; set; } = string.Empty;
 
     [StringLength(1000)]
-    public string Bio { get; set; } = string.Empty;
+    public string? Bio { get; set; } = string.Empty;
 
     [StringLength(500)]
-    public string Skills { get; set; } = string.Empty;
+    public string? Skills { get; set; } = string.Empty;
 
     [StringLength(300)]
-    public string LinkedInUrl { get; set; } = string.Empty;
+    public string? LinkedInUrl { get; set; } = string.Empty;
 
     [StringLength(300)]
-    public string GitHubUrl { get; set; } = string.Empty;
+    public string? GitHubUrl { get; set; } = string.Empty;
 
     [StringLength(30)]
-    public string PhoneNumber { get; set; } = string.Empty;
+    public string? PhoneNumber { get; set; } = string.Empty;
 
     [StringLength(500)]
-    public string GoogleCalendarUrl { get; set; } = string.Empty;
+    public string? GoogleCalendarUrl { get; set; } = string.Empty;
 }
 
 public class UpdateAvatarRequest

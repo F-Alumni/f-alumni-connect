@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Repositories.Entities;
+using UserService.Repositories.Helpers;
 using UserService.Repositories.Interfaces;
 using UserService.Services.DTOs.Requests;
 using UserService.Services.DTOs.Responses;
@@ -41,7 +42,11 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var email = request.Email.Trim().ToLowerInvariant();
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
         var allowNonFptEmail = bool.TryParse(_configuration["Auth:AllowNonFptEmail"], out var allowAll) && allowAll;
         if (!allowNonFptEmail && !IsAllowedFptEmail(email))
         {
@@ -56,9 +61,14 @@ public class AuthService : IAuthService
 
         var autoActivate = bool.TryParse(_configuration["Auth:AutoActivateOnRegister"], out var autoAct) && autoAct;
 
+        if (string.IsNullOrWhiteSpace(request.FullName))
+        {
+            throw new ArgumentException("Full name is required.");
+        }
+
         var userId = Guid.NewGuid();
         var (resolvedRole, resolvedAccountType) = ResolveRoleAndAccountType(request.Role, request.AccountType, request.GraduationYear);
-        var campus = string.IsNullOrWhiteSpace(request.Campus) ? "HCM" : request.Campus.Trim();
+        var campus = CampusNormalizer.NormalizeOrDefault(request.Campus);
         var user = new User
         {
             Id = userId,
@@ -77,10 +87,10 @@ public class AuthService : IAuthService
                 UserId = userId,
                 DisplayName = request.FullName.Trim(),
                 AvatarUrl = "https://cdn.falumni.local/avatars/default.jpg",
-                StudentCode = request.StudentCode.Trim(),
+                StudentCode = request.StudentCode?.Trim() ?? string.Empty,
                 Campus = campus,
                 GraduationYear = request.GraduationYear,
-                Major = request.Major.Trim(),
+                Major = request.Major?.Trim() ?? string.Empty,
                 UpdatedAtUtc = DateTime.UtcNow
             }
         };
@@ -134,7 +144,11 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var email = request.Email.Trim().ToLowerInvariant();
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken)
             ?? throw new NotFoundException(nameof(User), email);
 
@@ -145,7 +159,7 @@ public class AuthService : IAuthService
 
         var token = await _userRepository.GetValidVerificationTokenAsync(
             user.Id,
-            request.OtpCode.Trim(),
+            request.OtpCode?.Trim() ?? string.Empty,
             "EmailVerification",
             cancellationToken);
 
@@ -169,7 +183,11 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var email = request.Email.Trim().ToLowerInvariant();
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
 
         if (user is null || !PasswordHasher.VerifyPassword(request.Password, user.PasswordHash))
@@ -262,7 +280,7 @@ public class AuthService : IAuthService
                     AvatarUrl = string.IsNullOrWhiteSpace(avatarUrl)
                         ? "https://cdn.falumni.local/avatars/default.jpg"
                         : avatarUrl,
-                    Campus = string.IsNullOrWhiteSpace(request.Campus) ? "HCM" : request.Campus.Trim(),
+                    Campus = CampusNormalizer.NormalizeOrDefault(request.Campus),
                     UpdatedAtUtc = DateTime.UtcNow
                 }
             };
@@ -288,7 +306,7 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var storedToken = await _userRepository.GetRefreshTokenAsync(request.RefreshToken.Trim(), cancellationToken);
+        var storedToken = await _userRepository.GetRefreshTokenAsync(request.RefreshToken?.Trim() ?? string.Empty, cancellationToken);
         if (storedToken is null || storedToken.IsRevoked || storedToken.ExpiresAtUtc < DateTime.UtcNow || storedToken.User is null)
         {
             throw new UnauthorizedException("Invalid or expired refresh token.");
@@ -344,7 +362,11 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var email = request.Email.Trim().ToLowerInvariant();
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken)
             ?? throw new NotFoundException(nameof(User), email);
 
@@ -384,13 +406,17 @@ public class AuthService : IAuthService
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var email = request.Email.Trim().ToLowerInvariant();
+        var email = request.Email?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            throw new ArgumentException("Email is required.");
+        }
         var user = await _userRepository.GetByEmailAsync(email, cancellationToken)
             ?? throw new NotFoundException(nameof(User), email);
 
         var token = await _userRepository.GetValidVerificationTokenAsync(
             user.Id,
-            request.OtpCode.Trim(),
+            request.OtpCode?.Trim() ?? string.Empty,
             "PasswordReset",
             cancellationToken);
 

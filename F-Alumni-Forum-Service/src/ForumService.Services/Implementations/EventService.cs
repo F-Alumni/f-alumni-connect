@@ -22,6 +22,24 @@ public class EventService : IEventService
 
     public async Task<EventResponse> CreateEventAsync(CreateEventRequest request, Guid creatorId, string creatorName, string creatorAvatarUrl, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Title))
+        {
+            throw new ArgumentException("Tiêu đề sự kiện không được để trống.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Description))
+        {
+            throw new ArgumentException("Mô tả sự kiện không được để trống.");
+        }
+        if (string.IsNullOrWhiteSpace(request.Location))
+        {
+            throw new ArgumentException("Địa điểm tổ chức không được để trống.");
+        }
+        if (request.EndTime <= request.StartTime)
+        {
+            throw new ArgumentException("Thời gian kết thúc sự kiện phải sau thời gian bắt đầu.");
+        }
+
         var evt = new Event
         {
             CreatorId = creatorId,
@@ -80,6 +98,9 @@ public class EventService : IEventService
         Guid? currentUserId = null,
         CancellationToken cancellationToken = default)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var (items, totalCount) = await _eventRepository.GetEventsAsync(campus, upcomingOnly, page, pageSize, cancellationToken);
 
         var responses = new List<EventResponse>();
@@ -99,10 +120,29 @@ public class EventService : IEventService
 
     public async Task RsvpEventAsync(Guid eventId, RsvpEventRequest request, Guid userId, string userName, string userAvatarUrl, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        var normalizedStatus = request.Status?.Trim() switch
+        {
+            var s when string.Equals(s, "Going", StringComparison.OrdinalIgnoreCase) => "Going",
+            var s when string.Equals(s, "Interested", StringComparison.OrdinalIgnoreCase) => "Interested",
+            var s when string.Equals(s, "NotGoing", StringComparison.OrdinalIgnoreCase) => "NotGoing",
+            _ => throw new ArgumentException("Trạng thái RSVP phải là Going, Interested hoặc NotGoing.")
+        };
+
         var evt = await _eventRepository.GetByIdAsync(eventId, cancellationToken);
         if (evt == null)
         {
             throw new NotFoundException("Event", eventId);
+        }
+
+        if (normalizedStatus == "Going" && evt.MaxAttendees.HasValue)
+        {
+            var existing = await _eventRepository.GetAttendeeAsync(eventId, userId, cancellationToken);
+            var alreadyGoing = existing != null && string.Equals(existing.Status, "Going", StringComparison.OrdinalIgnoreCase);
+            if (!alreadyGoing && evt.GoingCount >= evt.MaxAttendees.Value)
+            {
+                throw new InvalidOperationException("Sự kiện đã đạt số lượng người tham gia tối đa.");
+            }
         }
 
         var attendee = new EventAttendee
@@ -111,7 +151,7 @@ public class EventService : IEventService
             UserId = userId,
             UserName = userName,
             UserAvatarUrl = userAvatarUrl,
-            Status = request.Status
+            Status = normalizedStatus
         };
 
         await _eventRepository.AddOrUpdateAttendeeAsync(attendee, cancellationToken);

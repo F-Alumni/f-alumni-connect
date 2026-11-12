@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using ForumService.Services.Exceptions;
 
 namespace ForumService.Api.Middlewares;
@@ -35,8 +36,9 @@ public class GlobalExceptionHandlingMiddleware
     {
         var statusCode = exception switch
         {
-            NotFoundException => HttpStatusCode.NotFound,
-            ForbiddenException => HttpStatusCode.Forbidden,
+            NotFoundException or KeyNotFoundException => HttpStatusCode.NotFound,
+            DbUpdateException => HttpStatusCode.Conflict,
+            ForbiddenException or UnauthorizedAccessException => HttpStatusCode.Forbidden,
             ArgumentException or InvalidOperationException => HttpStatusCode.BadRequest,
             _ => HttpStatusCode.InternalServerError
         };
@@ -70,6 +72,7 @@ public class GlobalExceptionHandlingMiddleware
     private static string GetTitle(HttpStatusCode statusCode) => statusCode switch
     {
         HttpStatusCode.NotFound => "Resource Not Found",
+        HttpStatusCode.Conflict => "Resource Conflict",
         HttpStatusCode.Forbidden => "Forbidden",
         HttpStatusCode.BadRequest => "Bad Request",
         _ => "An unexpected error occurred"

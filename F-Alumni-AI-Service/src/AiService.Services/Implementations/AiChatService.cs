@@ -45,6 +45,14 @@ public class AiChatService : IAiChatService
 
     public async Task<AiChatResponse> AskAsync(AiChatRequest request, Guid userId, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Question))
+        {
+            throw new ArgumentException("Câu hỏi không được để trống.");
+        }
+
+        var normalizedQuestion = request.Question.Trim();
+
         // 1. Get or create conversation
         AiConversation? conversation = null;
         if (request.ConversationId.HasValue)
@@ -54,7 +62,7 @@ public class AiChatService : IAiChatService
 
         if (conversation == null)
         {
-            var title = request.Question.Length > 50 ? request.Question[..50] + "..." : request.Question;
+            var title = normalizedQuestion.Length > 50 ? normalizedQuestion[..50] + "..." : normalizedQuestion;
             conversation = await _ragRepository.CreateConversationAsync(new AiConversation
             {
                 UserId = userId,

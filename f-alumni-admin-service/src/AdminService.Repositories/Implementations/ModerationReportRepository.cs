@@ -21,6 +21,13 @@ public class ModerationReportRepository : IModerationReportRepository
         return report;
     }
 
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.ModerationReports
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == id, cancellationToken);
+    }
+
     public async Task<ModerationReport?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return await _dbContext.ModerationReports
@@ -45,6 +52,9 @@ public class ModerationReportRepository : IModerationReportRepository
         {
             query = query.Where(x => x.TargetType == targetType);
         }
+
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 100);
 
         var totalCount = await query.CountAsync(cancellationToken);
 

@@ -99,6 +99,9 @@ public class ChatRepository : IChatRepository
             query = query.Where(m => m.Content.ToLower().Contains(term));
         }
 
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderByDescending(m => m.CreatedAtUtc)

@@ -38,7 +38,17 @@ app.MapGet("/", () => Results.Ok(new
         "/api/v1/chats/* -> chat-service:5002",
         "/api/chat/* -> chat-service:5002",
         "/hubs/chat/* -> chat-service:5002 (SignalR)",
-        "/api/v1/admin/* -> admin-service:5005"
+        "/api/v1/posts/* -> forum-service:5003",
+        "/api/v1/comments/* -> forum-service:5003",
+        "/api/v1/events/* -> forum-service:5003",
+        "/api/v1/categories/* -> forum-service:5003",
+        "/api/v1/reports/* -> forum-service:5003",
+        "/api/v1/bookmarks/* -> forum-service:5003",
+        "/hubs/forum/* -> forum-service:5003 (SignalR)",
+        "/api/v1/ai/* -> ai-service:5004",
+        "/api/v1/admin/* -> admin-service:5005",
+        "/api/v1/notifications/* -> notification-service:5006",
+        "/hubs/notifications/* -> notification-service:5006 (SignalR)"
     }
 }));
 

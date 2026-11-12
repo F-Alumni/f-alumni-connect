@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using UserService.Repositories.Context;
 using UserService.Repositories.Entities;
+using UserService.Repositories.Helpers;
 using UserService.Repositories.Interfaces;
 
 namespace UserService.Repositories.Implementations;
@@ -60,6 +61,30 @@ public class UserRepository : IUserRepository
         int pageSize,
         CancellationToken cancellationToken = default)
     {
+        var query = BuildDirectoryQuery(search, campus, graduationYear, major, company, status, role);
+
+        pageNumber = Math.Max(1, pageNumber);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var items = await query
+            .OrderByDescending(u => u.CreatedAtUtc)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return (items, totalCount);
+    }
+
+    internal IQueryable<User> BuildDirectoryQuery(
+        string? search,
+        string? campus,
+        int? graduationYear,
+        string? major,
+        string? company,
+        string? status,
+        string? role)
+    {
         var query = _dbContext.Users
             .AsNoTracking()
             .Include(u => u.Profile)
@@ -68,6 +93,8 @@ public class UserRepository : IUserRepository
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLowerInvariant();
+            var searchCampusCandidates = CampusNormalizer.GetKnownCampusCandidates(search);
+            var hasCampusCandidates = searchCampusCandidates.Count > 0;
             query = query.Where(u =>
                 u.FullName.ToLower().Contains(term) ||
                 u.Email.ToLower().Contains(term) ||
@@ -75,6 +102,7 @@ public class UserRepository : IUserRepository
                     u.Profile.DisplayName.ToLower().Contains(term) ||
                     u.Profile.StudentCode.ToLower().Contains(term) ||
                     u.Profile.Campus.ToLower().Contains(term) ||
+                    (hasCampusCandidates && searchCampusCandidates.Contains(u.Profile.Campus.Trim().ToLower())) ||
                     u.Profile.Skills.ToLower().Contains(term) ||
                     u.Profile.CurrentCompany.ToLower().Contains(term) ||
                     u.Profile.Major.ToLower().Contains(term))));
@@ -82,8 +110,11 @@ public class UserRepository : IUserRepository
 
         if (!string.IsNullOrWhiteSpace(campus))
         {
-            var cp = campus.Trim().ToLowerInvariant();
-            query = query.Where(u => u.Profile != null && u.Profile.Campus.ToLower() == cp);
+            var campusCandidates = CampusNormalizer.GetQueryCandidates(campus);
+            if (campusCandidates.Count > 0)
+            {
+                query = query.Where(u => u.Profile != null && campusCandidates.Contains(u.Profile.Campus.Trim().ToLower()));
+            }
         }
 
         if (graduationYear.HasValue)
@@ -122,14 +153,7 @@ public class UserRepository : IUserRepository
             }
         }
 
-        var totalCount = await query.CountAsync(cancellationToken);
-        var items = await query
-            .OrderByDescending(u => u.CreatedAtUtc)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
-
-        return (items, totalCount);
+        return query;
     }
 
     public async Task<VerificationToken> CreateVerificationTokenAsync(VerificationToken token, CancellationToken cancellationToken = default)
@@ -222,8 +246,21 @@ public class UserRepository : IUserRepository
         };
 
         await _dbContext.BlockedUsers.AddAsync(block, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-        return block;
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return block;
+        }
+        catch (DbUpdateException)
+        {
+            var concurrent = await _dbContext.BlockedUsers
+                .FirstOrDefaultAsync(b => b.BlockerUserId == blockerUserId && b.BlockedTargetUserId == targetUserId, cancellationToken);
+            if (concurrent is not null)
+            {
+                return concurrent;
+            }
+            throw;
+        }
     }
 
     public async Task<bool> UnblockUserAsync(Guid blockerUserId, Guid targetUserId, CancellationToken cancellationToken = default)

@@ -1,3 +1,4 @@
+using Contracts.Events;
 using Microsoft.Extensions.Logging;
 using ForumService.Repositories.Entities;
 using ForumService.Repositories.Interfaces;
@@ -13,47 +14,76 @@ public class CommentService : ICommentService
     private readonly ICommentRepository _commentRepository;
     private readonly IPostRepository _postRepository;
     private readonly ILogger<CommentService> _logger;
+    private readonly IKafkaProducerService? _kafkaProducer;
 
     public CommentService(
         ICommentRepository commentRepository,
         IPostRepository postRepository,
-        ILogger<CommentService> logger)
+        ILogger<CommentService> logger,
+        IKafkaProducerService? kafkaProducer = null)
     {
         _commentRepository = commentRepository;
         _postRepository = postRepository;
         _logger = logger;
+        _kafkaProducer = kafkaProducer;
     }
 
     public async Task<CommentResponse> AddCommentAsync(Guid postId, CreateCommentRequest request, Guid authorId, string authorName, string authorAvatarUrl, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Nội dung bình luận không được để trống.");
+        }
+
         var post = await _postRepository.GetByIdAsync(postId, cancellationToken);
         if (post == null)
         {
             throw new NotFoundException("Post", postId);
         }
 
+        Comment? parent = null;
         if (request.ParentCommentId.HasValue)
         {
-            var parent = await _commentRepository.GetByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            parent = await _commentRepository.GetByIdAsync(request.ParentCommentId.Value, cancellationToken);
             if (parent == null || parent.PostId != postId)
             {
                 throw new NotFoundException("ParentComment", request.ParentCommentId.Value);
             }
         }
 
+        var trimmedContent = request.Content.Trim();
         var comment = new Comment
         {
             PostId = postId,
             AuthorId = authorId,
             AuthorName = authorName,
             AuthorAvatarUrl = authorAvatarUrl,
-            Content = request.Content.Trim(),
+            Content = trimmedContent,
             ParentCommentId = request.ParentCommentId,
             CreatedAt = DateTime.UtcNow
         };
 
         var created = await _commentRepository.AddAsync(comment, cancellationToken);
         _logger.LogInformation("Added comment {CommentId} to post {PostId} by {AuthorId}", created.Id, postId, authorId);
+
+        if (_kafkaProducer != null && (post.AuthorId != authorId || (parent != null && parent.AuthorId != authorId)))
+        {
+            var preview = trimmedContent.Length > 120 ? trimmedContent[..120] + "..." : trimmedContent;
+            await _kafkaProducer.PublishCommentCreatedAsync(new CommentCreatedEventV1
+            {
+                CommentId = created.Id,
+                PostId = post.Id,
+                PostTitle = post.Title,
+                PostAuthorId = post.AuthorId,
+                ParentCommentId = parent?.Id,
+                ParentCommentAuthorId = parent?.AuthorId,
+                ActorUserId = authorId,
+                ActorName = string.IsNullOrWhiteSpace(authorName) ? "Một người dùng" : authorName.Trim(),
+                ContentPreview = preview,
+                CreatedAt = created.CreatedAt
+            }, CancellationToken.None);
+        }
 
         return MapToResponse(created);
     }
@@ -66,6 +96,12 @@ public class CommentService : ICommentService
 
     public async Task<CommentResponse> UpdateCommentAsync(Guid id, UpdateCommentRequest request, Guid currentUserId, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.Content))
+        {
+            throw new ArgumentException("Nội dung bình luận không được để trống.");
+        }
+
         var comment = await _commentRepository.GetByIdAsync(id, cancellationToken);
         if (comment == null)
         {

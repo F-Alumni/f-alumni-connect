@@ -19,8 +19,10 @@ public class MentorRecommendationService : IMentorRecommendationService
 
     public async Task<IReadOnlyList<MentorResponse>> RecommendMentorsAsync(RecommendMentorRequest request, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(request);
+
         var allMentors = await _ragRepository.GetMentorsAsync(null, cancellationToken);
-        var targetMajor = request.Major.Trim();
+        var targetMajor = request.Major?.Trim() ?? string.Empty;
         var targetSkills = (request.TargetSkills ?? new List<string>())
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Select(s => s.Trim().ToLower())
@@ -33,13 +35,14 @@ public class MentorRecommendationService : IMentorRecommendationService
             int score = 0;
 
             // Major match
-            if (string.Equals(m.Major, targetMajor, StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(targetMajor) &&
+                string.Equals(m.Major, targetMajor, StringComparison.OrdinalIgnoreCase))
             {
                 score += 50;
             }
 
             // Skill matches
-            var mentorSkills = m.Skills.ToLower();
+            var mentorSkills = (m.Skills ?? string.Empty).ToLower();
             foreach (var skill in targetSkills)
             {
                 if (mentorSkills.Contains(skill))
@@ -52,7 +55,9 @@ public class MentorRecommendationService : IMentorRecommendationService
             if (!string.IsNullOrWhiteSpace(request.CareerGoal))
             {
                 var goal = request.CareerGoal.ToLower();
-                if (m.JobTitle.ToLower().Contains(goal) || m.Bio.ToLower().Contains(goal))
+                var jobTitle = (m.JobTitle ?? string.Empty).ToLower();
+                var bio = (m.Bio ?? string.Empty).ToLower();
+                if (jobTitle.Contains(goal) || bio.Contains(goal))
                 {
                     score += 20;
                 }

@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<IUserModerationService, UserModerationService>();
         services.AddScoped<IModerationReportService, ModerationReportService>();
+        services.AddScoped<IReportEventProcessor, ReportEventProcessor>();
         services.AddScoped<ISystemAnnouncementService, SystemAnnouncementService>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IDataExportService, DataExportService>();

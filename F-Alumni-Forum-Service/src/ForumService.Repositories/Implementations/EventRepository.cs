@@ -40,6 +40,9 @@ public class EventRepository : IEventRepository
             query = query.Where(e => e.EndTime >= DateTime.UtcNow);
         }
 
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
         var totalCount = await query.CountAsync(cancellationToken);
         var items = await query
             .OrderBy(e => e.StartTime)

@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ChatService.Services.DTOs.Requests;
 using ChatService.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ChatService.Api.Hubs;
@@ -9,6 +10,7 @@ namespace ChatService.Api.Hubs;
 /// Real-time SignalR Hub for FPT Alumni Connect Chat Service (CH-02, CH-05, CH-06).
 /// Endpoint: /hubs/chat
 /// </summary>
+[Authorize]
 public class ChatHub : Hub
 {
     private readonly IChatAppService _chatAppService;
@@ -32,9 +34,12 @@ public class ChatHub : Hub
 
     public async Task JoinConversation(Guid conversationId)
     {
+        var currentUserId = GetCurrentUserId();
+        await EnsureParticipantOrThrowHubExceptionAsync(conversationId, currentUserId);
+
         await Groups.AddToGroupAsync(Context.ConnectionId, GetConversationGroupName(conversationId));
-        _logger.LogInformation("Connection {ConnectionId} joined conversation group {ConversationId}",
-            Context.ConnectionId, conversationId);
+        _logger.LogInformation("Connection {ConnectionId} (User {UserId}) joined conversation group {ConversationId}",
+            Context.ConnectionId, currentUserId, conversationId);
     }
 
     public async Task LeaveConversation(Guid conversationId)
@@ -47,10 +52,22 @@ public class ChatHub : Hub
     /// </summary>
     public async Task SendMessage(Guid conversationId, SendMessageRequest request)
     {
-        var senderId = request.SenderUserId ?? GetCurrentUserId();
-        var message = await _chatAppService.SendMessageAsync(conversationId, senderId, request);
-        await Clients.Group(GetConversationGroupName(conversationId))
-            .SendAsync("ReceiveMessage", message);
+        if (request is null)
+        {
+            throw new HubException("Message payload cannot be null.");
+        }
+
+        try
+        {
+            var senderId = GetCurrentUserId();
+            var message = await _chatAppService.SendMessageAsync(conversationId, senderId, request);
+            await Clients.Group(GetConversationGroupName(conversationId))
+                .SendAsync("ReceiveMessage", message);
+        }
+        catch (Exception ex) when (ex is ArgumentException or KeyNotFoundException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            throw new HubException(ex.Message);
+        }
     }
 
     /// <summary>
@@ -59,6 +76,8 @@ public class ChatHub : Hub
     public async Task SendTypingIndicator(Guid conversationId, bool isTyping)
     {
         var senderId = GetCurrentUserId();
+        await EnsureParticipantOrThrowHubExceptionAsync(conversationId, senderId);
+
         await Clients.OthersInGroup(GetConversationGroupName(conversationId))
             .SendAsync("UserTyping", new
             {
@@ -74,10 +93,29 @@ public class ChatHub : Hub
     /// </summary>
     public async Task MarkConversationRead(Guid conversationId)
     {
-        var readerId = GetCurrentUserId();
-        var result = await _chatAppService.MarkConversationReadAsync(conversationId, readerId);
-        await Clients.Group(GetConversationGroupName(conversationId))
-            .SendAsync("MessagesRead", result);
+        try
+        {
+            var readerId = GetCurrentUserId();
+            var result = await _chatAppService.MarkConversationReadAsync(conversationId, readerId);
+            await Clients.Group(GetConversationGroupName(conversationId))
+                .SendAsync("MessagesRead", result);
+        }
+        catch (Exception ex) when (ex is ArgumentException or KeyNotFoundException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            throw new HubException(ex.Message);
+        }
+    }
+
+    private async Task EnsureParticipantOrThrowHubExceptionAsync(Guid conversationId, Guid userId)
+    {
+        try
+        {
+            await _chatAppService.EnsureParticipantAsync(conversationId, userId);
+        }
+        catch (Exception ex) when (ex is ArgumentException or KeyNotFoundException or InvalidOperationException or UnauthorizedAccessException)
+        {
+            throw new HubException(ex.Message);
+        }
     }
 
     private Guid GetCurrentUserId()
@@ -85,17 +123,11 @@ public class ChatHub : Hub
         var claim = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier)
                     ?? Context.User?.FindFirstValue("sub");
 
-        if (Guid.TryParse(claim, out var userId))
+        if (Guid.TryParse(claim, out var userId) && userId != Guid.Empty)
         {
             return userId;
         }
 
-        var queryUser = Context.GetHttpContext()?.Request.Query["userId"].FirstOrDefault();
-        if (Guid.TryParse(queryUser, out var parsedQueryUser))
-        {
-            return parsedQueryUser;
-        }
-
-        return Guid.Parse("11111111-1111-1111-1111-111111111111");
+        throw new HubException("Unauthorized: valid user identifier claim is required.");
     }
 }

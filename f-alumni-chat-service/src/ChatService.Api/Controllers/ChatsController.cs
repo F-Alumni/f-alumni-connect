@@ -1,3 +1,4 @@
+using System.Security.Authentication;
 using System.Security.Claims;
 using ChatService.Api.Hubs;
 using ChatService.Services.DTOs.Common;
@@ -5,12 +6,14 @@ using ChatService.Services.DTOs.Requests;
 using ChatService.Services.DTOs.Responses;
 using ChatService.Services.Interfaces;
 using Grpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ChatService.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/v1/chats")]
 public class ChatsController : ControllerBase
 {
@@ -19,8 +22,6 @@ public class ChatsController : ControllerBase
     private readonly IHubContext<ChatHub> _hubContext;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChatsController> _logger;
-
-    private static readonly Guid DefaultDemoUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
     public ChatsController(
         IChatAppService chatAppService,
@@ -42,6 +43,8 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpGet("conversations/{conversationId:guid}/participants/{userId:guid}")]
     [ProducesResponseType(typeof(ConversationParticipantResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status504GatewayTimeout)]
@@ -50,6 +53,9 @@ public class ChatsController : ControllerBase
         [FromRoute] Guid userId,
         CancellationToken cancellationToken)
     {
+        var currentUserId = GetCurrentUserId();
+        await _chatAppService.EnsureParticipantAsync(conversationId, currentUserId, cancellationToken);
+
         var timeoutSeconds = _configuration.GetValue("GrpcServices:UserProfile:TimeoutSeconds", 3);
 
         try
@@ -115,14 +121,14 @@ public class ChatsController : ControllerBase
     [HttpPost("conversations")]
     [ProducesResponseType(typeof(ConversationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CreateConversation(
         [FromBody] CreateConversationRequest request,
-        [FromQuery] Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var currentUserId = userId ?? ResolveCurrentUserId();
+            var currentUserId = GetCurrentUserId();
             var conversation = await _chatAppService.CreateOrGetConversationAsync(currentUserId, request, cancellationToken);
             return CreatedAtAction(
                 nameof(GetConversationById),
@@ -144,14 +150,14 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpGet("conversations")]
     [ProducesResponseType(typeof(PagedResponse<ConversationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetConversations(
-        [FromQuery] Guid? userId = null,
         [FromQuery] bool includeHidden = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = userId ?? ResolveCurrentUserId();
+        var currentUserId = GetCurrentUserId();
         var result = await _chatAppService.GetUserConversationsAsync(currentUserId, includeHidden, page, pageSize, cancellationToken);
         return Ok(result);
     }
@@ -161,12 +167,15 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpGet("conversations/{conversationId:guid}")]
     [ProducesResponseType(typeof(ConversationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetConversationById(
         [FromRoute] Guid conversationId,
         CancellationToken cancellationToken = default)
     {
-        var conversation = await _chatAppService.GetConversationByIdAsync(conversationId, cancellationToken);
+        var currentUserId = GetCurrentUserId();
+        var conversation = await _chatAppService.GetConversationByIdAsync(conversationId, currentUserId, cancellationToken);
         if (conversation is null)
         {
             return Problem(
@@ -184,6 +193,8 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpGet("conversations/{conversationId:guid}/messages")]
     [ProducesResponseType(typeof(PagedResponse<ChatMessageResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetMessages(
         [FromRoute] Guid conversationId,
@@ -194,7 +205,8 @@ public class ChatsController : ControllerBase
     {
         try
         {
-            var result = await _chatAppService.GetMessagesAsync(conversationId, search, page, pageSize, cancellationToken);
+            var currentUserId = GetCurrentUserId();
+            var result = await _chatAppService.GetMessagesAsync(conversationId, currentUserId, search, page, pageSize, cancellationToken);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -214,6 +226,8 @@ public class ChatsController : ControllerBase
     [HttpPost("conversations/{conversationId:guid}/messages")]
     [ProducesResponseType(typeof(ChatMessageResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> SendMessage(
         [FromRoute] Guid conversationId,
@@ -222,7 +236,7 @@ public class ChatsController : ControllerBase
     {
         try
         {
-            var senderUserId = request.SenderUserId ?? ResolveCurrentUserId();
+            var senderUserId = GetCurrentUserId();
             var message = await _chatAppService.SendMessageAsync(conversationId, senderUserId, request, cancellationToken);
 
             await _hubContext.Clients
@@ -254,15 +268,16 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpPost("conversations/{conversationId:guid}/read")]
     [ProducesResponseType(typeof(MarkReadResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MarkConversationRead(
         [FromRoute] Guid conversationId,
-        [FromQuery] Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var readerUserId = userId ?? ResolveCurrentUserId();
+            var readerUserId = GetCurrentUserId();
             var result = await _chatAppService.MarkConversationReadAsync(conversationId, readerUserId, cancellationToken);
 
             await _hubContext.Clients
@@ -286,45 +301,42 @@ public class ChatsController : ControllerBase
     /// </summary>
     [HttpPut("conversations/{conversationId:guid}/settings")]
     [ProducesResponseType(typeof(ParticipantDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateConversationSettings(
         [FromRoute] Guid conversationId,
         [FromBody] UpdateConversationSettingsRequest request,
-        [FromQuery] Guid? userId = null,
         CancellationToken cancellationToken = default)
     {
-        var currentUserId = userId ?? ResolveCurrentUserId();
-        var updated = await _chatAppService.UpdateConversationSettingsAsync(
-            conversationId, currentUserId, request, cancellationToken);
+        try
+        {
+            var currentUserId = GetCurrentUserId();
+            var updated = await _chatAppService.UpdateConversationSettingsAsync(
+                conversationId, currentUserId, request, cancellationToken);
 
-        if (updated is null)
+            return Ok(updated);
+        }
+        catch (KeyNotFoundException ex)
         {
             return Problem(
                 statusCode: StatusCodes.Status404NotFound,
-                title: "Participant Not Found",
-                detail: $"User '{currentUserId}' is not a participant in conversation '{conversationId}'.",
+                title: "Conversation Not Found",
+                detail: ex.Message,
                 type: "https://httpstatuses.com/404");
         }
-
-        return Ok(updated);
     }
 
-    private Guid ResolveCurrentUserId()
+    private Guid GetCurrentUserId()
     {
         var claim = User.FindFirstValue(ClaimTypes.NameIdentifier)
                     ?? User.FindFirstValue("sub");
 
-        if (Guid.TryParse(claim, out var parsed))
+        if (Guid.TryParse(claim, out var parsed) && parsed != Guid.Empty)
         {
             return parsed;
         }
 
-        if (Request.Headers.TryGetValue("X-User-Id", out var headerVal) &&
-            Guid.TryParse(headerVal.FirstOrDefault(), out var headerGuid))
-        {
-            return headerGuid;
-        }
-
-        return DefaultDemoUserId;
+        throw new AuthenticationException("Authenticated user ID claim is missing or invalid.");
     }
 }

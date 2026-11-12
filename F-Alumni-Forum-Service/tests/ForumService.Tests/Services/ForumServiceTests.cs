@@ -128,6 +128,24 @@ public class ForumServiceTests
             Events.Add(eventData);
             return Task.CompletedTask;
         }
+
+        public Task PublishPostReactedAsync(Contracts.Events.PostReactedEventV1 eventData, CancellationToken cancellationToken = default)
+        {
+            Events.Add(eventData);
+            return Task.CompletedTask;
+        }
+
+        public Task PublishCommentCreatedAsync(Contracts.Events.CommentCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+        {
+            Events.Add(eventData);
+            return Task.CompletedTask;
+        }
+
+        public Task PublishReportCreatedAsync(Contracts.Events.ReportCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+        {
+            Events.Add(eventData);
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]
@@ -224,6 +242,177 @@ public class ForumServiceTests
         var attendees = await service.GetAttendeesAsync(created.Id);
         Assert.Equal(2, attendees.Count);
         Assert.Contains(attendees, a => a.UserId == guestId && a.Status == "Interested");
+    }
+
+    [Fact]
+    public async Task EventService_InvalidDateAndRsvpStatus_ThrowArgumentException()
+    {
+        var eventRepo = new FakeEventRepository();
+        var service = new EventService(eventRepo, NullLogger<EventService>.Instance);
+        var creatorId = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.CreateEventAsync(
+            new CreateEventRequest
+            {
+                Title = "Invalid Time Event",
+                Description = "End before start",
+                Location = "FPT",
+                StartTime = DateTime.UtcNow.AddDays(2),
+                EndTime = DateTime.UtcNow.AddDays(1)
+            },
+            creatorId,
+            "Creator",
+            "https://avatar.url/a"));
+
+        var validEvent = await service.CreateEventAsync(
+            new CreateEventRequest
+            {
+                Title = "Valid Event",
+                Description = "OK",
+                Location = "FPT",
+                StartTime = DateTime.UtcNow.AddDays(1),
+                EndTime = DateTime.UtcNow.AddDays(2),
+                MaxAttendees = 1
+            },
+            creatorId,
+            "Creator",
+            "https://avatar.url/a");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.RsvpEventAsync(
+            validEvent.Id,
+            new RsvpEventRequest { Status = "InvalidStatus" },
+            Guid.NewGuid(),
+            "Guest",
+            "https://avatar.url/b"));
+    }
+
+    [Fact]
+    public async Task InteractionAndCommentServices_EmitKafkaEvents_OnlyForOtherUsers()
+    {
+        var postRepo = new FakePostRepository();
+        var interactionRepo = new FakeInteractionRepository();
+        var kafkaProducer = new FakeKafkaProducer();
+        var authorId = Guid.NewGuid();
+        var actorId = Guid.NewGuid();
+
+        var post = await postRepo.AddAsync(new Post
+        {
+            Id = Guid.NewGuid(),
+            AuthorId = authorId,
+            AuthorName = "Author A",
+            Title = "Test Post",
+            Content = "Content"
+        });
+
+        var interactionService = new InteractionService(
+            interactionRepo,
+            postRepo,
+            NullLogger<InteractionService>.Instance,
+            kafkaProducer);
+
+        // Self-like does not publish
+        Assert.True(await interactionService.ToggleReactionAsync(post.Id, authorId, "Author A"));
+        Assert.Empty(kafkaProducer.Events);
+
+        // Like by another user publishes PostReactedEventV1
+        Assert.True(await interactionService.ToggleReactionAsync(post.Id, actorId, "Actor B"));
+        Assert.Single(kafkaProducer.Events);
+        var reacted = Assert.IsType<Contracts.Events.PostReactedEventV1>(kafkaProducer.Events[0]);
+        Assert.Equal(authorId, reacted.PostAuthorId);
+        Assert.Equal(actorId, reacted.ActorUserId);
+
+        // Unlike does not publish
+        Assert.False(await interactionService.ToggleReactionAsync(post.Id, actorId, "Actor B"));
+        Assert.Single(kafkaProducer.Events);
+    }
+
+    private class ThrowingKafkaProducer : IKafkaProducerService
+    {
+        public Task PublishPostCreatedAsync(Contracts.Events.PostCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Kafka unavailable");
+
+        public Task PublishPostReactedAsync(Contracts.Events.PostReactedEventV1 eventData, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Kafka unavailable");
+
+        public Task PublishCommentCreatedAsync(Contracts.Events.CommentCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Kafka unavailable");
+
+        public Task PublishReportCreatedAsync(Contracts.Events.ReportCreatedEventV1 eventData, CancellationToken cancellationToken = default)
+            => throw new InvalidOperationException("Kafka unavailable");
+    }
+
+    [Fact]
+    public async Task InteractionService_CreateReport_PersistsAndEmitsKafkaEvent()
+    {
+        var postRepo = new FakePostRepository();
+        var interactionRepo = new FakeInteractionRepository();
+        var kafkaProducer = new FakeKafkaProducer();
+        var service = new InteractionService(
+            interactionRepo,
+            postRepo,
+            NullLogger<InteractionService>.Instance,
+            kafkaProducer);
+
+        var targetId = Guid.NewGuid();
+        var reporterId = Guid.NewGuid();
+        var request = new CreateReportRequest
+        {
+            TargetType = "Post",
+            TargetId = targetId,
+            Reason = "  Spam  ",
+            Details = "  Repeated promotional links  "
+        };
+
+        await service.CreateReportAsync(request, reporterId, "Nguyen Van A");
+
+        Assert.Single(interactionRepo.Reports);
+        var savedReport = interactionRepo.Reports[0];
+        Assert.Equal("Post", savedReport.TargetType);
+        Assert.Equal(targetId, savedReport.TargetId);
+        Assert.Equal(reporterId, savedReport.ReporterId);
+        Assert.Equal("Nguyen Van A", savedReport.ReporterName);
+        Assert.Equal("Spam", savedReport.Reason);
+        Assert.Equal("Repeated promotional links", savedReport.Details);
+        Assert.Equal("Pending", savedReport.Status);
+
+        Assert.Single(kafkaProducer.Events);
+        var emitted = Assert.IsType<Contracts.Events.ReportCreatedEventV1>(kafkaProducer.Events[0]);
+        Assert.Equal(savedReport.Id, emitted.ReportId);
+        Assert.Equal("Post", emitted.TargetType);
+        Assert.Equal(targetId, emitted.TargetId);
+        Assert.Equal(reporterId, emitted.ReporterId);
+        Assert.Equal("Nguyen Van A", emitted.ReporterName);
+        Assert.Equal("Spam", emitted.Reason);
+        Assert.Equal("Repeated promotional links", emitted.Details);
+        Assert.Equal("Pending", emitted.Status);
+    }
+
+    [Fact]
+    public async Task InteractionService_CreateReport_WhenKafkaThrows_StillPersistsGracefully()
+    {
+        var postRepo = new FakePostRepository();
+        var interactionRepo = new FakeInteractionRepository();
+        var kafkaProducer = new ThrowingKafkaProducer();
+        var service = new InteractionService(
+            interactionRepo,
+            postRepo,
+            NullLogger<InteractionService>.Instance,
+            kafkaProducer);
+
+        var targetId = Guid.NewGuid();
+        var reporterId = Guid.NewGuid();
+
+        await service.CreateReportAsync(new CreateReportRequest
+        {
+            TargetType = "Comment",
+            TargetId = targetId,
+            Reason = "Harassment",
+            Details = "Abusive comment"
+        }, reporterId, "Tran Thi B");
+
+        Assert.Single(interactionRepo.Reports);
+        Assert.Equal("Comment", interactionRepo.Reports[0].TargetType);
+        Assert.Equal(targetId, interactionRepo.Reports[0].TargetId);
     }
 
     private class FakeEventRepository : IEventRepository
