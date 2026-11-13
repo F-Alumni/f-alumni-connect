@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-11-13T01:00:00.000Z" agent="FAlumni-Diagram-Generator" version="24.7.17" type="device">
+  <diagram id="d05_communication" name="D05 - Giao tiếp giữa các Service">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1080" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+      <mxCell id="d05_communication_c2" value="&lt;b&gt;D5. BỐN CƠ CHẾ GIAO TIẾP MICROSERVICES — FPT ALUMNI CONNECT (Slide 13)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+        <mxGeometry x="40" y="14" width="1840" height="40" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c3" value="Sơ đồ minh họa 4 kiểu giao tiếp thực tế trong hệ thống" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=top;spacingLeft=14;spacingRight=8;spacingTop=8;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+        <mxGeometry x="40" y="68" width="1840" height="510" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c4" value="&lt;b&gt;Client (Web / Mobile)&lt;/b&gt;&lt;br/&gt;React 19 (:5173)&lt;br/&gt;@microsoft/signalr" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="70" y="190" width="250" height="100" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c5" value="&lt;b&gt;YARP API Gateway&lt;/b&gt;&lt;br/&gt;Port :5000&lt;br/&gt;/api/v1/* , /hubs/*" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="495" y="102" width="270" height="88" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c6" value="&lt;b&gt;AdminService (:5005)&lt;/b&gt;&lt;br/&gt;UserServiceClient&lt;br/&gt;(Typed HttpClient)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="945" y="102" width="280" height="88" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c7" value="&lt;b&gt;UserService&lt;/b&gt;&lt;br/&gt;REST :5001 (/api/v1/internal/users/*)&lt;br/&gt;gRPC :50051 (UserProfileGrpcService)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1490" y="175" width="350" height="112" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c8" value="&lt;b&gt;ChatService (:5002)&lt;/b&gt;&lt;br/&gt;SignalR ChatHub (/hubs/chat)&lt;br/&gt;UserProfileLookupService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="945" y="282" width="280" height="96" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c9" value="&lt;b&gt;ForumService (:5003)&lt;/b&gt;&lt;br/&gt;PostService&lt;br/&gt;IKafkaProducerService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="495" y="452" width="270" height="92" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c10" value="&lt;b&gt;Apache Kafka KRaft (:9092)&lt;/b&gt;&lt;br/&gt;Topic: &lt;b&gt;post.created.v1&lt;/b&gt;&lt;br/&gt;(+ user.registered.v1, chat.message_sent.v1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="945" y="452" width="280" height="92" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c11" value="&lt;b&gt;AiService (:5004)&lt;/b&gt;&lt;br/&gt;PostCreatedConsumerWorker&lt;br/&gt;RagIngestionService" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1490" y="452" width="350" height="92" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c4" target="d05_communication_c5">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="395" y="220"/>
+            <mxPoint x="395" y="146"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c13" value="&lt;b&gt;[1] REST JSON (đồng bộ)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="283" y="114" width="210" height="28" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c5" target="d05_communication_c6">
+        <mxGeometry relative="1" as="geometry">
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c15" value="Proxy (/api/v1/*)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="790" y="133" width="130" height="26" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.28;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c6" target="d05_communication_c7">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="1345" y="146"/>
+            <mxPoint x="1345" y="206"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c17" value="&lt;b&gt;[1] REST nội bộ (:5001)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1260" y="118" width="190" height="28" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=3;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=block;startFill=1;endArrow=block;endFill=1;exitX=1;exitY=0.72;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c4" target="d05_communication_c8">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="395" y="262"/>
+            <mxPoint x="395" y="330"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c19" value="&lt;b&gt;[2] SignalR WebSocket&lt;/b&gt;&lt;br/&gt;(qua Gateway /hubs/chat · realtime 2 chiều)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="500" y="309" width="340" height="42" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;dashed=1;dashPattern=10 3 2 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.72;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c8" target="d05_communication_c7">
+        <mxGeometry relative="1" as="geometry">
+          <Array as="points">
+            <mxPoint x="1345" y="330"/>
+            <mxPoint x="1345" y="256"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c21" value="&lt;b&gt;[3] gRPC HTTP/2 Protobuf (:50051)&lt;/b&gt;&lt;br/&gt;GetUserSummary(UserId)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1230" y="333" width="250" height="44" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c9" target="d05_communication_c10">
+        <mxGeometry relative="1" as="geometry">
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c23" value="&lt;b&gt;[4] Publish&lt;/b&gt;&lt;br/&gt;(Kafka async)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="798" y="477" width="114" height="42" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 6;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="d05_communication_c10" target="d05_communication_c11">
+        <mxGeometry relative="1" as="geometry">
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c25" value="&lt;b&gt;[4] Async Consume&lt;/b&gt;&lt;br/&gt;(post.created.v1)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1275" y="477" width="166" height="42" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c26" value="&lt;b&gt;Chú thích ký hiệu đường truyền:&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=top;spacingLeft=12;spacingRight=8;spacingTop=8;" vertex="1" parent="1">
+        <mxGeometry x="70" y="382" width="350" height="172" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="90" y="428" as="sourcePoint"/>
+          <mxPoint x="160" y="428" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c28" value="[1] REST JSON (nét liền mảnh)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+        <mxGeometry x="170" y="414" width="240" height="26" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=3;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=block;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="90" y="462" as="sourcePoint"/>
+          <mxPoint x="160" y="462" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c30" value="[2] SignalR WebSocket (đậm 2 đầu)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+        <mxGeometry x="170" y="448" width="240" height="26" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;dashed=1;dashPattern=10 3 2 3;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="90" y="496" as="sourcePoint"/>
+          <mxPoint x="160" y="496" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c32" value="[3] gRPC HTTP/2 (gạch chấm đậm)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+        <mxGeometry x="170" y="482" width="240" height="26" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 6;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="90" y="530" as="sourcePoint"/>
+          <mxPoint x="160" y="530" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d05_communication_c34" value="[4] Kafka Async (nét đứt mũi tên mở)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;" vertex="1" parent="1">
+        <mxGeometry x="170" y="516" width="240" height="26" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c35" value="&lt;b&gt;Kiểu giao tiếp&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="598" width="340" height="48" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c36" value="&lt;b&gt;Dùng ở đâu (đối chiếu code thật trong f-alumni-connect)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="380" y="598" width="750" height="48" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c37" value="&lt;b&gt;Vì sao chọn&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1130" y="598" width="750" height="48" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c38" value="&lt;b&gt;1. REST / HTTP JSON&lt;/b&gt;&lt;br/&gt;&lt;i&gt;(Đồng bộ)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="646" width="340" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c39" value="• Client ↔ YARP Gateway (:5000 /api/v1/*) tới cả 6 microservice (gồm NotificationService :5006).&lt;br/&gt;• AdminService → UserService (&lt;b&gt;UserServiceClient&lt;/b&gt; gọi /api/v1/internal/users/{id}/suspend)." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="380" y="646" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c40" value="Chuẩn phổ biến cho thao tác CRUD từ Web/Mobile, dễ kiểm thử với Swagger &amp;amp; chuẩn lỗi RFC 7807." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1130" y="646" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c41" value="&lt;b&gt;2. SignalR WebSocket&lt;/b&gt;&lt;br/&gt;&lt;i&gt;(Realtime 2 chiều)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="726" width="340" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c42" value="• Web/Mobile ↔ ChatService (&lt;b&gt;ChatHub&lt;/b&gt; /hubs/chat), ForumService (&lt;b&gt;ForumHub&lt;/b&gt; /hubs/forum) &amp;amp; &lt;b&gt;NotificationHub&lt;/b&gt; (/hubs/notifications)." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="380" y="726" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c43" value="Push dữ liệu tức thì (typing, tin nhắn mới, thông báo realtime, đã xem) mà không tốn request HTTP polling." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1130" y="726" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c44" value="&lt;b&gt;3. gRPC HTTP/2&lt;/b&gt;&lt;br/&gt;&lt;i&gt;(Đồng bộ, nhị phân)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="806" width="340" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c45" value="• ChatService (&lt;b&gt;UserProfileLookupService&lt;/b&gt;) → UserService (:50051 · &lt;b&gt;UserProfileGrpcService.GetUserSummary&lt;/b&gt;)." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="380" y="806" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c46" value="Đóng gói nhị phân Protobuf trên HTTP/2 nhỏ gọn và nhanh hơn JSON, hợp đồng .proto chặt chẽ giữa các service." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1130" y="806" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c47" value="&lt;b&gt;4. Apache Kafka&lt;/b&gt;&lt;br/&gt;&lt;i&gt;(Bất đồng bộ, Event)&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="886" width="340" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c48" value="• Forum → AI (&lt;b&gt;post.created.v1&lt;/b&gt;); Forum → Admin (&lt;b&gt;forum.report_created.v1&lt;/b&gt;).&lt;br/&gt;• Chat/Forum → Notification (&lt;b&gt;chat.message_sent.v1&lt;/b&gt;, &lt;b&gt;forum.comment_created.v1&lt;/b&gt;, &lt;b&gt;forum.post_reacted.v1&lt;/b&gt;)." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="380" y="886" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c49" value="Tách rời tải xử lý (decoupling): đăng bài/báo cáo trả về ngay; RAG/Gemini 2.5, thông báo và kiểm duyệt chạy nền không mất sự kiện." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=12;spacingRight=10;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1130" y="886" width="750" height="80" as="geometry"/>
+      </mxCell>
+      <mxCell id="d05_communication_c50" value="&lt;b&gt;Kết luận:&lt;/b&gt; Hình này chứng minh FPT Alumni Connect áp dụng đúng từng giao thức theo bài toán — REST cho CRUD, SignalR cho realtime 2 chiều, gRPC cho tốc độ nội bộ và Kafka để tách tải bất đồng bộ." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=16;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="990" width="1840" height="64" as="geometry"/>
+      </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

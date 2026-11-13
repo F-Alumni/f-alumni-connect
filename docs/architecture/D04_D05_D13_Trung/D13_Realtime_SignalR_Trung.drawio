@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2026-11-13T01:00:00.000Z" agent="FAlumni-Diagram-Generator" version="24.7.17" type="device">
+  <diagram id="d13_realtime_signalr" name="D13 - Realtime SignalR giữa 2 trình duyệt">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1920" pageHeight="1140" math="0" shadow="0" background="#ffffff">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+      <mxCell id="d13_realtime_signalr_c2" value="&lt;b&gt;D13. REALTIME SIGNALR GIỮA 2 TRÌNH DUYỆT — CHAT HUB (Slide 30)&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontColor=#000000;fontFamily=Arial;fontSize=22;fontStyle=1;" vertex="1" parent="1">
+        <mxGeometry x="40" y="14" width="1840" height="40" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c3" value="&lt;b&gt;Kịch bản demo 2 trình duyệt đặt cạnh nhau:&lt;/b&gt; Cửa sổ thường đăng nhập &lt;b&gt;student@fpt.edu.vn&lt;/b&gt;  ↔  Cửa sổ ẩn danh đăng nhập &lt;b&gt;alumni.test@fpt.edu.vn&lt;/b&gt;  (Endpoint: &lt;b&gt;/hubs/chat&lt;/b&gt;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=16;spacingRight=8;spacingTop=6;dashed=1;dashPattern=8 4;" vertex="1" parent="1">
+        <mxGeometry x="40" y="62" width="1840" height="42" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c4" value="&lt;b&gt;Trình duyệt 1 (Student)&lt;/b&gt;&lt;br/&gt;student@fpt.edu.vn&lt;br/&gt;SignalR Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="50" y="118" width="260" height="74" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c5" value="&lt;b&gt;Trình duyệt 1 (Student)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="50" y="1002" width="260" height="44" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c6" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=none;endFill=1;dashed=1;dashPattern=6 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="180" y="192" as="sourcePoint"/>
+          <mxPoint x="180" y="1002" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c7" value="&lt;b&gt;Trình duyệt 2 (Mentor)&lt;/b&gt;&lt;br/&gt;alumni.test@fpt.edu.vn&lt;br/&gt;SignalR Client" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="460" y="118" width="260" height="74" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c8" value="&lt;b&gt;Trình duyệt 2 (Mentor)&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="460" y="1002" width="260" height="44" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c9" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=none;endFill=1;dashed=1;dashPattern=6 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="590" y="192" as="sourcePoint"/>
+          <mxPoint x="590" y="1002" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c10" value="&lt;b&gt;YARP API Gateway&lt;/b&gt;&lt;br/&gt;Port :5000&lt;br/&gt;/hubs/chat/{**remainder}" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="885" y="118" width="270" height="74" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c11" value="&lt;b&gt;YARP API Gateway&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="885" y="1002" width="270" height="44" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c12" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=none;endFill=1;dashed=1;dashPattern=6 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1020" y="192" as="sourcePoint"/>
+          <mxPoint x="1020" y="1002" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c13" value="&lt;b&gt;ChatHub &amp;amp; ChatAppService&lt;/b&gt;&lt;br/&gt;ChatService (:5002)&lt;br/&gt;FAlumni_Chat_Db" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1320" y="118" width="300" height="74" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c14" value="&lt;b&gt;ChatHub &amp;amp; ChatAppService&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1320" y="1002" width="300" height="44" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c15" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=none;endFill=1;dashed=1;dashPattern=6 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1470" y="192" as="sourcePoint"/>
+          <mxPoint x="1470" y="1002" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c16" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1012" y="214" width="16" height="766" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c17" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1462" y="252" width="16" height="728" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c18" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="180" y="224" as="sourcePoint"/>
+          <mxPoint x="1012" y="224" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c19" value="1. JoinConversation(conversationId)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="240" y="212" width="290" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c20" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1028" y="260" as="sourcePoint"/>
+          <mxPoint x="1462" y="260" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c21" value="1a. Groups.AddToGroupAsync(connId, &quot;conversation:{id}&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1048" y="248" width="395" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c22" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="590" y="306" as="sourcePoint"/>
+          <mxPoint x="1012" y="306" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c23" value="2. JoinConversation(conversationId)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="658" y="294" width="285" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c24" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1028" y="342" as="sourcePoint"/>
+          <mxPoint x="1462" y="342" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c25" value="2a. Groups.AddToGroupAsync(connId, &quot;conversation:{id}&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1048" y="330" width="395" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c26" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="180" y="392" as="sourcePoint"/>
+          <mxPoint x="1012" y="392" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c27" value="3. SendTypingIndicator(conversationId, isTyping: true)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="193" y="380" width="385" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c28" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1028" y="428" as="sourcePoint"/>
+          <mxPoint x="1462" y="428" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c29" value="3a. forward" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1190" y="416" width="110" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c30" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1462" y="468" as="sourcePoint"/>
+          <mxPoint x="590" y="468" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c31" value="3b. Clients.OthersInGroup → UserTyping (&quot;đang nhập...&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="613" y="456" width="385" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c32" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="180" y="518" as="sourcePoint"/>
+          <mxPoint x="1012" y="518" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c33" value="4. SendMessage(conversationId, SendMessageRequest)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="195" y="506" width="380" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c34" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1028" y="554" as="sourcePoint"/>
+          <mxPoint x="1462" y="554" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c35" value="4a. forward → ChatHub.SendMessage(...)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1088" y="542" width="315" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c36" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="90" y="588" width="1790" height="288" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c37" value="alt  [Conversation hợp lệ]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="90" y="588" width="300" height="32" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c38" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1478" y="626" as="sourcePoint"/>
+          <mxPoint x="1478" y="670" as="targetPoint"/>
+          <Array as="points">
+            <mxPoint x="1545" y="626"/>
+            <mxPoint x="1545" y="670"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c39" value="&lt;b&gt;ChatAppService.SendMessageAsync()&lt;/b&gt;&lt;br/&gt;Lưu ChatMessage (Status=&quot;Sent&quot;)&lt;br/&gt;vào FAlumni_Chat_Db + Kafka" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1556" y="610" width="312" height="72" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c40" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1462" y="706" as="sourcePoint"/>
+          <mxPoint x="590" y="706" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c41" value="4b. ReceiveMessage → Trình duyệt 2 (Mentor)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="625" y="694" width="350" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c42" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1462" y="742" as="sourcePoint"/>
+          <mxPoint x="180" y="742" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c43" value="4b&apos;. ReceiveMessage → Trình duyệt 1 (Group sync)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="613" y="730" width="375" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c44" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.5;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=none;endFill=1;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="90" y="770" as="sourcePoint"/>
+          <mxPoint x="1880" y="770" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c45" value="[else: Không tìm thấy Conversation]" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.4;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="90" y="770" width="335" height="30" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c46" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.6;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1478" y="800" as="sourcePoint"/>
+          <mxPoint x="1478" y="840" as="targetPoint"/>
+          <Array as="points">
+            <mxPoint x="1545" y="800"/>
+            <mxPoint x="1545" y="840"/>
+          </Array>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c47" value="Ném &lt;b&gt;KeyNotFoundException&lt;/b&gt;&lt;br/&gt;(&quot;Conversation was not found&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="1556" y="790" width="312" height="56" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c48" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1462" y="850" as="sourcePoint"/>
+          <mxPoint x="180" y="850" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c49" value="4c. Trả lỗi HubException về Trình duyệt 1 (ngoại lệ)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="190" y="838" width="390" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c50" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="590" y="902" as="sourcePoint"/>
+          <mxPoint x="1012" y="902" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c51" value="5. MarkConversationRead(conversationId)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="648" y="890" width="305" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c52" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=1.8;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=block;endFill=1;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1028" y="936" as="sourcePoint"/>
+          <mxPoint x="1462" y="936" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c53" value="5a. MarkConversationReadAsync() → cập nhật ReadAtUtc" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="1048" y="924" width="395" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c54" value="" style="edgeStyle=none;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=14;labelBackgroundColor=#ffffff;startArrow=none;startFill=1;endArrow=open;endFill=0;dashed=1;dashPattern=8 5;" edge="1" parent="1">
+        <mxGeometry relative="1" as="geometry">
+          <mxPoint x="1462" y="972" as="sourcePoint"/>
+          <mxPoint x="180" y="972" as="targetPoint"/>
+        </mxGeometry>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c55" value="5b. MessagesRead(result) — Trình duyệt 1 (&quot;Đã xem&quot;)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=none;strokeWidth=0;fontColor=#000000;fontFamily=Arial;fontSize=14;fontStyle=0;align=center;verticalAlign=middle;spacingLeft=4;spacingRight=4;spacingTop=2;" vertex="1" parent="1">
+        <mxGeometry x="613" y="960" width="375" height="24" as="geometry"/>
+      </mxCell>
+      <mxCell id="d13_realtime_signalr_c56" value="&lt;b&gt;Kết luận:&lt;/b&gt; Hình này chứng minh SignalR ChatHub (/hubs/chat) đồng bộ sự kiện realtime giữa 2 trình duyệt độc lập (typing, gửi/nhận tin nhắn, đã xem), đồng thời lưu bền vững vào FAlumni_Chat_Db và xử lý ngoại lệ an toàn." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=2;fontColor=#000000;fontFamily=Arial;fontSize=15;fontStyle=1;align=left;verticalAlign=middle;spacingLeft=16;spacingRight=8;spacingTop=6;" vertex="1" parent="1">
+        <mxGeometry x="40" y="1062" width="1840" height="62" as="geometry"/>
+      </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
