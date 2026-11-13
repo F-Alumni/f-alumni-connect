@@ -50,6 +50,7 @@ public class UsersController : ControllerBase
         [FromQuery] int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
+        var isAdmin = User.IsInRole("ADMIN");
         var result = await _userProfileService.GetDirectoryPagedAsync(
             search,
             campus,
@@ -60,9 +61,33 @@ public class UsersController : ControllerBase
             role,
             pageNumber,
             pageSize,
+            isAdmin,
             cancellationToken);
 
         return Ok(result);
+    }
+
+    /// <summary>
+    /// US-06 Alias: Search alumni directory by keyword (`q` or `search`).
+    /// </summary>
+    [HttpGet("search")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(PagedResponse<UserProfileResponse>), StatusCodes.Status200OK)]
+    public Task<ActionResult<PagedResponse<UserProfileResponse>>> SearchDirectory(
+        [FromQuery] string? q = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? campus = null,
+        [FromQuery] int? graduationYear = null,
+        [FromQuery] string? major = null,
+        [FromQuery] string? company = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? role = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        CancellationToken cancellationToken = default)
+    {
+        var term = !string.IsNullOrWhiteSpace(search) ? search : q;
+        return GetDirectory(term, campus, graduationYear, major, company, status, role, pageNumber, pageSize, cancellationToken);
     }
 
     /// <summary>

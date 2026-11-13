@@ -38,11 +38,13 @@ public class PostsController : ControllerBase
         [FromQuery] int page = 1,
         [FromQuery] int? pageNumber = null,
         [FromQuery] int pageSize = 10,
+        [FromQuery] bool includeHidden = false,
         CancellationToken cancellationToken = default)
     {
         var currentUserId = User.Identity?.IsAuthenticated == true ? User.GetUserId() : (Guid?)null;
         var resolvedPage = pageNumber ?? page;
-        var result = await _postService.GetFeedAsync(campus, major, postType, search, isAnswered, sort, resolvedPage, pageSize, currentUserId, cancellationToken);
+        var canSeeHidden = includeHidden && User.IsAdmin();
+        var result = await _postService.GetFeedAsync(campus, major, postType, search, isAnswered, sort, resolvedPage, pageSize, currentUserId, cancellationToken, canSeeHidden);
         return Ok(result);
     }
 
@@ -141,5 +143,23 @@ public class PostsController : ControllerBase
         var userId = User.GetUserId();
         await _postService.MarkAnsweredAsync(id, isAnswered, userId, cancellationToken);
         return NoContent();
+    }
+
+    public record SetPostVisibilityRequest(bool IsHidden);
+
+    /// <summary>
+    /// AD-06 / AD-07: Admin toggles visibility of a post (Hide / Restore).
+    /// </summary>
+    [HttpPatch("{id:guid}/visibility")]
+    [Authorize(Policy = "RequireAdminRole")]
+    [ProducesResponseType(typeof(PostResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SetVisibility(
+        [FromRoute] Guid id,
+        [FromBody] SetPostVisibilityRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var updated = await _postService.SetVisibilityAsync(id, request.IsHidden, cancellationToken);
+        return Ok(updated);
     }
 }

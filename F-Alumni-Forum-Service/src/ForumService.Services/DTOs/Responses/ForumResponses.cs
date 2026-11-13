@@ -16,6 +16,7 @@ public class PostResponse
     public int LikeCount { get; set; }
     public int CommentCount { get; set; }
     public bool IsPinned { get; set; }
+    public bool IsHidden { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

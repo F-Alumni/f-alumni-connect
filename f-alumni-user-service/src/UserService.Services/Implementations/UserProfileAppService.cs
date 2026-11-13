@@ -193,7 +193,7 @@ public class UserProfileAppService : IUserProfileAppService
             throw new ArgumentException("You cannot block yourself.");
         }
 
-        _ = await _userRepository.GetByIdAsync(targetUserId, cancellationToken)
+        var target = await _userRepository.GetByIdAsync(targetUserId, cancellationToken)
             ?? throw new NotFoundException(nameof(User), targetUserId);
 
         var block = await _userRepository.BlockUserAsync(
@@ -202,14 +202,7 @@ public class UserProfileAppService : IUserProfileAppService
             request?.Reason?.Trim() ?? string.Empty,
             cancellationToken);
 
-        return new BlockedUserResponse
-        {
-            Id = block.Id,
-            BlockerUserId = block.BlockerUserId,
-            BlockedTargetUserId = block.BlockedTargetUserId,
-            Reason = block.Reason,
-            CreatedAtUtc = block.CreatedAtUtc
-        };
+        return MapBlockedUser(block, target);
     }
 
     public async Task UnblockUserAsync(
@@ -229,14 +222,36 @@ public class UserProfileAppService : IUserProfileAppService
         CancellationToken cancellationToken = default)
     {
         var list = await _userRepository.GetBlockedUsersAsync(blockerUserId, cancellationToken);
-        return list.Select(b => new BlockedUserResponse
+        var results = new List<BlockedUserResponse>(list.Count);
+        foreach (var b in list)
+        {
+            var target = await _userRepository.GetByIdAsync(b.BlockedTargetUserId, cancellationToken);
+            results.Add(MapBlockedUser(b, target));
+        }
+        return results;
+    }
+
+    private static BlockedUserResponse MapBlockedUser(BlockedUser b, User? target)
+    {
+        var avatar = target?.Profile?.AvatarUrl;
+        if (!string.IsNullOrWhiteSpace(avatar) && avatar.Contains("cdn.falumni.local", StringComparison.OrdinalIgnoreCase))
+        {
+            avatar = string.Empty;
+        }
+        return new BlockedUserResponse
         {
             Id = b.Id,
             BlockerUserId = b.BlockerUserId,
             BlockedTargetUserId = b.BlockedTargetUserId,
+            TargetFullName = target?.FullName,
+            TargetEmail = target?.Profile?.ShowEmailPublicly == false ? null : target?.Email,
+            TargetAvatarUrl = avatar,
+            TargetRole = target?.Role,
+            TargetMajor = target?.Profile?.Major,
+            TargetCampus = target?.Profile?.Campus,
             Reason = b.Reason,
             CreatedAtUtc = b.CreatedAtUtc
-        }).ToList();
+        };
     }
 
     public async Task<PagedResponse<UserProfileResponse>> GetDirectoryPagedAsync(
@@ -249,6 +264,7 @@ public class UserProfileAppService : IUserProfileAppService
         string? role,
         int pageNumber,
         int pageSize,
+        bool includeAdminFields = false,
         CancellationToken cancellationToken = default)
     {
         if (pageNumber < 1) pageNumber = 1;
@@ -269,7 +285,7 @@ public class UserProfileAppService : IUserProfileAppService
 
         return new PagedResponse<UserProfileResponse>
         {
-            Items = items.Select(u => u.ToResponse(applyPublicPrivacyMask: true)).ToList(),
+            Items = items.Select(u => u.ToResponse(applyPublicPrivacyMask: !includeAdminFields)).ToList(),
             PageNumber = pageNumber,
             PageSize = pageSize,
             TotalCount = totalCount

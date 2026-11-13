@@ -31,6 +31,7 @@ public class UserProfileResponse
     public string Role { get; set; } = "ALUMNI";
     public string AccountType { get; set; } = "Alumni";
     public string Status { get; set; } = "Active";
+    public string? SuspensionReason { get; set; }
     public bool EmailVerified { get; set; }
     public string StudentCode { get; set; } = string.Empty;
     public string Campus { get; set; } = "HCM";
@@ -57,6 +58,12 @@ public class BlockedUserResponse
     public Guid Id { get; set; }
     public Guid BlockerUserId { get; set; }
     public Guid BlockedTargetUserId { get; set; }
+    public string? TargetFullName { get; set; }
+    public string? TargetEmail { get; set; }
+    public string? TargetAvatarUrl { get; set; }
+    public string? TargetRole { get; set; }
+    public string? TargetMajor { get; set; }
+    public string? TargetCampus { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTime CreatedAtUtc { get; set; }
 }

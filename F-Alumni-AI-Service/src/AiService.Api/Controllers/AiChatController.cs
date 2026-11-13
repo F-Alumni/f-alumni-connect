@@ -146,6 +146,54 @@ public class AiChatController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("rag/upload")]
+    [Authorize(Roles = "ADMIN")]
+    [RequestSizeLimit(15 * 1024 * 1024)]
+    [ProducesResponseType(typeof(RagIngestionResult), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> UploadAndIngest(IFormFile? file, CancellationToken cancellationToken = default)
+    {
+        if (file == null || file.Length == 0)
+        {
+            throw new ArgumentException("File is required and must not be empty.");
+        }
+
+        const long maxFileSizeBytes = 15 * 1024 * 1024;
+        if (file.Length > maxFileSizeBytes)
+        {
+            throw new ArgumentException("File exceeds maximum allowed size of 15 MB.");
+        }
+
+        var originalName = Path.GetFileName(file.FileName);
+        var ext = Path.GetExtension(originalName);
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".docx", ".md", ".txt" };
+        if (string.IsNullOrWhiteSpace(ext) || !allowedExtensions.Contains(ext))
+        {
+            throw new ArgumentException("Only .docx, .md, and .txt files are supported.");
+        }
+
+        var safeFileName = string.Join("_", originalName.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+        if (string.IsNullOrWhiteSpace(safeFileName))
+        {
+            safeFileName = $"rag-upload-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}{ext.ToLowerInvariant()}";
+        }
+
+        var targetDir = ResolveAndValidateRagDirectory(null);
+        var uploadsDir = Path.Combine(targetDir, "uploads");
+        Directory.CreateDirectory(uploadsDir);
+        var destinationPath = Path.Combine(uploadsDir, safeFileName);
+
+        await using (var stream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            await file.CopyToAsync(stream, cancellationToken);
+        }
+
+        var result = await _ragIngestionService.IngestDocumentsFromDirectoryAsync(targetDir, forceReindex: true, cancellationToken);
+        return Ok(result);
+    }
+
     private string ResolveAndValidateRagDirectory(string? requestedDirectoryPath)
     {
         var configuredDefault = _configuration["Rag:DataDirectory"]

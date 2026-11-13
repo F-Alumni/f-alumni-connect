@@ -18,17 +18,17 @@ public class UserProfileLookupService : IUserProfileLookupService
         {
             [Guid.Parse("11111111-1111-1111-1111-111111111111")] = (
                 "Nguyen Van A",
-                "https://cdn.falumni.local/avatars/nguyenvana.jpg",
+                string.Empty,
                 "Active"
             ),
             [Guid.Parse("22222222-2222-2222-2222-222222222222")] = (
                 "Tran Thi B",
-                "https://cdn.falumni.local/avatars/tranthib.jpg",
+                string.Empty,
                 "Active"
             ),
             [Guid.Parse("33333333-3333-3333-3333-333333333333")] = (
                 "Le Hoang C",
-                "https://cdn.falumni.local/avatars/lehoangc.jpg",
+                string.Empty,
                 "Mentor"
             )
         };
@@ -104,7 +104,7 @@ public class UserProfileLookupService : IUserProfileLookupService
                 ConversationId: conversationId,
                 UserId: userId,
                 DisplayName: $"Alumni {userId.ToString()[..8]}",
-                AvatarUrl: $"https://cdn.falumni.local/avatars/{userId}.jpg",
+                AvatarUrl: string.Empty,
                 Status: "Active",
                 ResolvedVia: "Local Fallback",
                 RetrievedAtUtc: DateTime.UtcNow

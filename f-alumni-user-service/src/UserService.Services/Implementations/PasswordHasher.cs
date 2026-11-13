@@ -71,10 +71,13 @@ public static class UserMappingExtensions
             Email = (!applyPublicPrivacyMask || showEmail) ? user.Email : string.Empty,
             FullName = user.FullName,
             DisplayName = !string.IsNullOrWhiteSpace(p?.DisplayName) ? p.DisplayName : user.FullName,
-            AvatarUrl = !string.IsNullOrWhiteSpace(p?.AvatarUrl) ? p.AvatarUrl : "https://cdn.falumni.local/avatars/default.jpg",
+            AvatarUrl = !string.IsNullOrWhiteSpace(p?.AvatarUrl) && !p.AvatarUrl.Contains("cdn.falumni.local", StringComparison.OrdinalIgnoreCase)
+                ? p.AvatarUrl
+                : string.Empty,
             Role = user.Role,
             AccountType = user.AccountType,
             Status = user.Status,
+            SuspensionReason = !applyPublicPrivacyMask ? user.SuspensionReason : null,
             EmailVerified = user.EmailVerified,
             StudentCode = p?.StudentCode ?? string.Empty,
             Campus = !string.IsNullOrWhiteSpace(p?.Campus) ? p.Campus : "HCM",

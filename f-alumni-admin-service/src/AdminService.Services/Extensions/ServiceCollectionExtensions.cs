@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
 
         // 2. Register HTTP Clients for inter-service communication
         services.AddHttpClient<IUserServiceClient, UserServiceClient>();
+        services.AddHttpClient<IForumModerationClient, ForumModerationClient>();
 
         // 3. Register Service layer dependencies
         services.AddScoped<ISampleItemService, SampleItemService>();

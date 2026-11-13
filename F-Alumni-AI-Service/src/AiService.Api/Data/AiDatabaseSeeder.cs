@@ -57,7 +57,7 @@ public static class AiDatabaseSeeder
                         JobTitle = "Senior Software Engineer / Tech Lead",
                         Skills = "C#, .NET, Microservices, Cloud, System Architecture, Docker, Kubernetes, SQL",
                         Bio = "Alumni K13 ĐH FPT. Hơn 6 năm kinh nghiệm phát triển hệ thống backend phân tán và mentoring sinh viên năm cuối hướng nghiệp phần mềm.",
-                        AvatarUrl = "https://cdn.falumni.local/avatars/mentor1.jpg"
+                        AvatarUrl = string.Empty
                     },
                     new()
                     {
@@ -70,7 +70,7 @@ public static class AiDatabaseSeeder
                         JobTitle = "AI Research Engineer",
                         Skills = "Python, PyTorch, LLM, Computer Vision, RAG, NLP, Deep Learning, MLOps",
                         Bio = "Alumni K14 ĐH FPT. Chuyên sâu về Generative AI, RAG và xử lý ngôn ngữ tự nhiên. Sẵn sàng hỗ trợ định hướng đồ án Capstone AI và nghiên cứu khoa học.",
-                        AvatarUrl = "https://cdn.falumni.local/avatars/mentor2.jpg"
+                        AvatarUrl = string.Empty
                     },
                     new()
                     {
@@ -83,7 +83,7 @@ public static class AiDatabaseSeeder
                         JobTitle = "Security Consultant",
                         Skills = "Penetration Testing, OWASP, Cloud Security, SIEM, Incident Response, Network Security",
                         Bio = "Alumni K15 ĐH FPT. Đạt nhiều giải thưởng CTF và có kinh nghiệm bảo mật hệ thống ngân hàng, fintech.",
-                        AvatarUrl = "https://cdn.falumni.local/avatars/mentor3.jpg"
+                        AvatarUrl = string.Empty
                     }
                 };
 

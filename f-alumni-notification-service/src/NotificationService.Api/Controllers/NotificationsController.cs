@@ -52,6 +52,7 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost("read-all")]
+    [HttpPatch("read-all")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken = default)
     {

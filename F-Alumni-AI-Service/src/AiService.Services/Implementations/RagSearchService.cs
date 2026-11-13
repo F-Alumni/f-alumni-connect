@@ -369,15 +369,15 @@ public class RagSearchService : IRagSearchService
 
     private static string NormalizeProgramCode(string programCode)
     {
-        var p = programCode.Trim().ToUpperInvariant();
-        if (p == "SE" || p.StartsWith("BIT_SE") || p == "KTPM") return "BIT_SE";
-        if (p == "AI" || p.StartsWith("BIT_AI")) return "BIT_AI";
-        if (p == "IA" || p.StartsWith("BIT_IA") || p == "ATTT") return "BIT_IA";
-        if (p == "GD" || p.StartsWith("BIT_GD")) return "BIT_GD";
-        if (p == "IB" || p.StartsWith("BBA_IB") || p == "KDQT") return "BBA_IB";
-        if (p == "MC" || p.StartsWith("BBA_MC")) return "BBA_MC";
-        if (p == "MKT" || p.StartsWith("BBA_MKT")) return "BBA_MKT";
-        return p;
+        var p = RemoveDiacritics(programCode.Trim()).ToUpperInvariant();
+        if (p == "SE" || p.StartsWith("BIT_SE") || p == "KTPM" || p.Contains("SOFTWARE ENGINEERING") || p.Contains("KY THUAT PHAN MEM") || p.Contains("(SE)")) return "BIT_SE";
+        if (p == "AI" || p.StartsWith("BIT_AI") || p.Contains("ARTIFICIAL INTELLIGENCE") || p.Contains("TRI TUE NHAN TAO") || p.Contains("(AI)")) return "BIT_AI";
+        if (p == "IA" || p.StartsWith("BIT_IA") || p == "ATTT" || p.Contains("INFORMATION ASSURANCE") || p.Contains("AN TOAN THONG TIN") || p.Contains("(IA)")) return "BIT_IA";
+        if (p == "GD" || p.StartsWith("BIT_GD") || p.Contains("GRAPHIC DESIGN") || p.Contains("MY THUAT SO") || p.Contains("(GD)")) return "BIT_GD";
+        if (p == "IB" || p.StartsWith("BBA_IB") || p == "KDQT" || p.Contains("INTERNATIONAL BUSINESS") || p.Contains("KINH DOANH QUOC TE") || p.Contains("(IB)")) return "BBA_IB";
+        if (p == "MC" || p.StartsWith("BBA_MC") || p.Contains("MULTIMEDIA") || p.Contains("TRUYEN THONG") || p.Contains("(MC)")) return "BBA_MC";
+        if (p == "MKT" || p.StartsWith("BBA_MKT") || p.Contains("MARKETING") || p.Contains("(MKT)")) return "BBA_MKT";
+        return programCode.Trim().ToUpperInvariant();
     }
 
     private static bool ChunkMatchesCampus(string campusCode, string sectionFlat, string contentFlat)

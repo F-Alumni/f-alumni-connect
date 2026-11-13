@@ -67,13 +67,19 @@ public class UserServiceClient : IUserServiceClient
                     return pagedData;
                 }
             }
+
+            _logger.LogWarning("User Service returned status {StatusCode} on directory query.", response.StatusCode);
+            throw new HttpRequestException($"User Service returned HTTP {(int)response.StatusCode} while loading users.");
+        }
+        catch (HttpRequestException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to connect to User Service at {Url}. Using fallback mock data.", _httpClient.BaseAddress);
+            _logger.LogError(ex, "Failed to connect to User Service at {Url}.", _httpClient.BaseAddress);
+            throw new HttpRequestException($"Cannot connect to User Service at {_httpClient.BaseAddress}: {ex.Message}", ex);
         }
-
-        return CreateFallbackPagedUsers(query);
     }
 
     public async Task<AdminUserSummaryDto?> GetUserByIdAsync(
@@ -91,13 +97,23 @@ public class UserServiceClient : IUserServiceClient
             {
                 return await response.Content.ReadFromJsonAsync<AdminUserSummaryDto>(JsonOptions, cancellationToken);
             }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            throw new HttpRequestException($"User Service returned HTTP {(int)response.StatusCode} while loading user '{userId}'.");
+        }
+        catch (HttpRequestException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to query User Service for userId {UserId}. Using fallback.", userId);
+            _logger.LogError(ex, "Failed to query User Service for userId {UserId}.", userId);
+            throw new HttpRequestException($"Cannot connect to User Service: {ex.Message}", ex);
         }
-
-        return GetFallbackUser(userId);
     }
 
     public async Task<bool> SuspendUserAsync(
@@ -115,12 +131,16 @@ public class UserServiceClient : IUserServiceClient
             AttachAuthHeader(req, bearerToken);
 
             var response = await _httpClient.SendAsync(req, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("User Service returned {StatusCode} while suspending user {UserId}", response.StatusCode, userId);
+            }
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call User Service suspend endpoint for {UserId}. Operating in fallback mode.", userId);
-            return true; // Fallback simulation for offline testing
+            _logger.LogError(ex, "Failed to call User Service suspend endpoint for {UserId}.", userId);
+            return false;
         }
     }
 
@@ -139,12 +159,16 @@ public class UserServiceClient : IUserServiceClient
             AttachAuthHeader(req, bearerToken);
 
             var response = await _httpClient.SendAsync(req, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogWarning("User Service returned {StatusCode} while unsuspending user {UserId}", response.StatusCode, userId);
+            }
             return response.IsSuccessStatusCode;
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to call User Service unsuspend endpoint for {UserId}. Operating in fallback mode.", userId);
-            return true; // Fallback simulation for offline testing
+            _logger.LogError(ex, "Failed to call User Service unsuspend endpoint for {UserId}.", userId);
+            return false;
         }
     }
 
@@ -157,94 +181,5 @@ public class UserServiceClient : IUserServiceClient
                 : token;
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", rawToken);
         }
-    }
-
-    private static PagedResponse<AdminUserSummaryDto> CreateFallbackPagedUsers(UserFilterQuery query)
-    {
-        var all = new List<AdminUserSummaryDto>
-        {
-            new()
-            {
-                Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                Email = "nguyenvana@fpt.edu.vn",
-                FullName = "Nguyen Van A",
-                DisplayName = "Nguyen Van A",
-                Role = "ALUMNI",
-                AccountType = "Alumni",
-                Status = "Active",
-                Campus = "Hoa Lac",
-                Major = "Software Engineering",
-                CurrentCompany = "FPT Software",
-                JobTitle = "Backend Engineer",
-                CreatedAtUtc = DateTime.UtcNow.AddMonths(-6)
-            },
-            new()
-            {
-                Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
-                Email = "tranthib@fpt.edu.vn",
-                FullName = "Tran Thi B",
-                DisplayName = "Tran Thi B",
-                Role = "STUDENT",
-                AccountType = "Student",
-                Status = "Active",
-                Campus = "HCM",
-                Major = "Artificial Intelligence",
-                CurrentCompany = "FPT University",
-                JobTitle = "Final Year Student",
-                CreatedAtUtc = DateTime.UtcNow.AddMonths(-3)
-            },
-            new()
-            {
-                Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
-                Email = "levanc@fpt.edu.vn",
-                FullName = "Le Van C",
-                DisplayName = "Le Van C",
-                Role = "ALUMNI",
-                AccountType = "Alumni",
-                Status = "Suspended",
-                SuspensionReason = "Spamming forum posts",
-                Campus = "Da Nang",
-                Major = "Information Assurance",
-                CreatedAtUtc = DateTime.UtcNow.AddMonths(-1)
-            },
-            new()
-            {
-                Id = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
-                Email = "admin@fpt.edu.vn",
-                FullName = "FPT Alumni Admin",
-                DisplayName = "FPT Alumni Admin",
-                Role = "ADMIN",
-                AccountType = "Admin",
-                Status = "Active",
-                Campus = "Hoa Lac",
-                Major = "Administration",
-                CreatedAtUtc = DateTime.UtcNow.AddYears(-1)
-            }
-        };
-
-        var filtered = all.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(query.Status))
-        {
-            filtered = filtered.Where(u => u.Status.Equals(query.Status, StringComparison.OrdinalIgnoreCase));
-        }
-        if (!string.IsNullOrWhiteSpace(query.Role))
-        {
-            filtered = filtered.Where(u => u.Role.Equals(query.Role, StringComparison.OrdinalIgnoreCase));
-        }
-
-        var list = filtered.ToList();
-        return new PagedResponse<AdminUserSummaryDto>
-        {
-            Items = list,
-            PageNumber = query.PageNumber,
-            PageSize = query.PageSize,
-            TotalCount = list.Count
-        };
-    }
-
-    private static AdminUserSummaryDto? GetFallbackUser(Guid userId)
-    {
-        var users = CreateFallbackPagedUsers(new UserFilterQuery { PageSize = 100 }).Items;
-        return users.FirstOrDefault(u => u.Id == userId);
     }
 }

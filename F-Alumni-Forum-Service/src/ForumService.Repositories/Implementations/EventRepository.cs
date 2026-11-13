@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ForumService.Repositories.Context;
 using ForumService.Repositories.Entities;
+using ForumService.Repositories.Helpers;
 using ForumService.Repositories.Interfaces;
 
 namespace ForumService.Repositories.Implementations;
@@ -32,7 +33,15 @@ public class EventRepository : IEventRepository
 
         if (!string.IsNullOrWhiteSpace(campus) && !campus.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(e => e.Campus == campus || e.Campus == "All");
+            var campusCandidates = CampusNormalizer.GetQueryCandidates(campus);
+            if (campusCandidates.Count > 0)
+            {
+                query = query.Where(e => e.Campus == "All" || campusCandidates.Contains(e.Campus.Trim().ToLower()));
+            }
+            else
+            {
+                query = query.Where(e => e.Campus == campus || e.Campus == "All");
+            }
         }
 
         if (upcomingOnly == true)

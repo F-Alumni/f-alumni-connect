@@ -28,6 +28,11 @@ public class ForumServiceTests
 
         public Task<Post?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            return Task.FromResult(Posts.FirstOrDefault(p => p.Id == id && !p.IsHidden));
+        }
+
+        public Task<Post?> GetByIdIncludingHiddenAsync(Guid id, CancellationToken cancellationToken = default)
+        {
             return Task.FromResult(Posts.FirstOrDefault(p => p.Id == id));
         }
 
@@ -37,9 +42,10 @@ public class ForumServiceTests
             return Task.FromResult< (IReadOnlyList<Post>, int) >((items, items.Count));
         }
 
-        public Task<(IReadOnlyList<Post> Items, int TotalCount)> GetFeedAsync(string? campus = null, string? major = null, string? postType = null, string? search = null, bool? isAnswered = null, string sort = "latest", int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+        public Task<(IReadOnlyList<Post> Items, int TotalCount)> GetFeedAsync(string? campus = null, string? major = null, string? postType = null, string? search = null, bool? isAnswered = null, string sort = "latest", int page = 1, int pageSize = 10, CancellationToken cancellationToken = default, bool includeHidden = false)
         {
             var q = Posts.AsEnumerable();
+            if (!includeHidden) q = q.Where(p => !p.IsHidden);
             if (!string.IsNullOrEmpty(campus) && campus != "All") q = q.Where(p => p.Campus == campus || p.Campus == "All");
             if (!string.IsNullOrEmpty(major) && major != "All") q = q.Where(p => p.Major == major || p.Major == "All");
             if (!string.IsNullOrEmpty(postType)) q = q.Where(p => p.PostType == postType);

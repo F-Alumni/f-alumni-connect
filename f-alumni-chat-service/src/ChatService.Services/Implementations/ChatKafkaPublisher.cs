@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using ChatService.Services.DTOs.Responses;
 using ChatService.Services.Interfaces;
@@ -21,6 +22,7 @@ public record ChatMessageSentEventPayload(
 
 public class ChatKafkaPublisher : IChatKafkaPublisher
 {
+    private static readonly HttpClient SharedHttpClient = new() { Timeout = TimeSpan.FromSeconds(2.5) };
     private readonly IConfiguration _configuration;
     private readonly ILogger<ChatKafkaPublisher> _logger;
     private const string MessageSentTopic = "chat.message_sent.v1";
@@ -57,12 +59,11 @@ public class ChatKafkaPublisher : IChatKafkaPublisher
 
         var json = JsonSerializer.Serialize(envelope);
         var bootstrapServers = _configuration["Kafka:BootstrapServers"];
+        var kafkaEnabled = !string.Equals(_configuration["Kafka:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
 
-        if (string.IsNullOrWhiteSpace(bootstrapServers))
+        if (!kafkaEnabled || string.IsNullOrWhiteSpace(bootstrapServers))
         {
-            _logger.LogInformation(
-                "[Kafka Simulated] Published {EventType} for ConversationId={ConversationId}, MessageId={MessageId}: {Payload}",
-                MessageSentTopic, message.ConversationId, message.Id, json);
+            await ForwardToNotificationHttpBridgeAsync(json, cancellationToken);
             return;
         }
 
@@ -88,7 +89,25 @@ public class ChatKafkaPublisher : IChatKafkaPublisher
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Kafka broker unreachable for {EventType}; continuing without failing chat request.", MessageSentTopic);
+            _logger.LogWarning(ex, "Kafka broker unreachable for {EventType}; falling back to HTTP notification bridge.", MessageSentTopic);
+            await ForwardToNotificationHttpBridgeAsync(json, cancellationToken);
+        }
+    }
+
+    private async Task ForwardToNotificationHttpBridgeAsync(string rawEnvelopeJson, CancellationToken cancellationToken)
+    {
+        var notificationBaseUrl = (_configuration["Services:NotificationService:Url"] ?? "http://localhost:5006").TrimEnd('/');
+        try
+        {
+            using var content = new StringContent(rawEnvelopeJson, Encoding.UTF8, "application/json");
+            await SharedHttpClient.PostAsync(
+                $"{notificationBaseUrl}/api/v1/internal/notifications/events/{MessageSentTopic}",
+                content,
+                cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "HTTP notification bridge unreachable at {Url}; continuing chat request.", notificationBaseUrl);
         }
     }
 }

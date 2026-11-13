@@ -22,7 +22,8 @@ public interface IModerationReportService
         Guid reportId,
         ResolveReportRequest request,
         string? ipAddress = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? bearerToken = null);
 
     Task<ModerationReportResponse> DismissReportAsync(
         Guid adminId,

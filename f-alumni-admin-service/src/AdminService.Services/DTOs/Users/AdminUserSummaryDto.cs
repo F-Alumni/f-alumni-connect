@@ -16,6 +16,7 @@ public class AdminUserSummaryDto
     public string? StudentCode { get; set; }
     public string? Major { get; set; }
     public string? Campus { get; set; }
+    public int? GraduationYear { get; set; }
     public string? CurrentCompany { get; set; }
     public string? JobTitle { get; set; }
 }

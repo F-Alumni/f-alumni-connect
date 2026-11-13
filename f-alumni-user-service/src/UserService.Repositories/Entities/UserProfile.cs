@@ -12,7 +12,7 @@ public class UserProfile
 
     public string DisplayName { get; set; } = string.Empty;
 
-    public string AvatarUrl { get; set; } = "https://cdn.falumni.local/avatars/default.jpg";
+    public string AvatarUrl { get; set; } = string.Empty;
 
     public string StudentCode { get; set; } = string.Empty;
 

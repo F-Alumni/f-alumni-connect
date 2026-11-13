@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ForumService.Repositories.Context;
 using ForumService.Repositories.Entities;
+using ForumService.Repositories.Helpers;
 using ForumService.Repositories.Interfaces;
 
 namespace ForumService.Repositories.Implementations;
@@ -23,6 +24,15 @@ public class PostRepository : IPostRepository
             .FirstOrDefaultAsync(p => p.Id == id && !p.IsHidden, cancellationToken);
     }
 
+    public async Task<Post?> GetByIdIncludingHiddenAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Posts
+            .Include(p => p.Images)
+            .Include(p => p.Tags)
+            .Include(p => p.Comments)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
     public async Task<(IReadOnlyList<Post> Items, int TotalCount)> GetFeedAsync(
         string? campus = null,
         string? major = null,
@@ -32,17 +42,26 @@ public class PostRepository : IPostRepository
         string sort = "latest",
         int page = 1,
         int pageSize = 10,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool includeHidden = false)
     {
         var query = _dbContext.Posts
             .AsNoTracking()
             .Include(p => p.Images)
             .Include(p => p.Tags)
-            .Where(p => !p.IsHidden);
+            .Where(p => includeHidden || !p.IsHidden);
 
         if (!string.IsNullOrWhiteSpace(campus) && !campus.Equals("All", StringComparison.OrdinalIgnoreCase))
         {
-            query = query.Where(p => p.Campus == campus || p.Campus == "All");
+            var campusCandidates = CampusNormalizer.GetQueryCandidates(campus);
+            if (campusCandidates.Count > 0)
+            {
+                query = query.Where(p => p.Campus == "All" || campusCandidates.Contains(p.Campus.Trim().ToLower()));
+            }
+            else
+            {
+                query = query.Where(p => p.Campus == campus || p.Campus == "All");
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(major) && !major.Equals("All", StringComparison.OrdinalIgnoreCase))

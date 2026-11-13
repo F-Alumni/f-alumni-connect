@@ -37,6 +37,7 @@ public interface IUserProfileAppService
         string? role,
         int pageNumber,
         int pageSize,
+        bool includeAdminFields = false,
         CancellationToken cancellationToken = default);
     Task<UserProfileResponse> SuspendUserAsync(Guid userId, SuspendUserRequest request, CancellationToken cancellationToken = default);
     Task<UserProfileResponse> UnsuspendUserAsync(Guid userId, CancellationToken cancellationToken = default);

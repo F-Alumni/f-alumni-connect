@@ -31,6 +31,7 @@ public class DashboardController : ControllerBase
     /// <summary>
     /// Retrieves current system operational summary metrics for the Admin Dashboard (AD-01).
     /// </summary>
+    [HttpGet]
     [HttpGet("summary")]
     [ProducesResponseType(typeof(AdminDashboardSummaryDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

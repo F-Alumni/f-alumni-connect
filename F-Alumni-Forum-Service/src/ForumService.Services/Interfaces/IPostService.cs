@@ -18,9 +18,11 @@ public interface IPostService
         int page = 1,
         int pageSize = 10,
         Guid? currentUserId = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool includeHidden = false);
     Task<PagedResponse<PostResponse>> GetMyPostsAsync(Guid authorId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default);
     Task<PostResponse> UpdatePostAsync(Guid id, UpdatePostRequest request, Guid currentUserId, bool isAdmin = false, CancellationToken cancellationToken = default);
     Task DeletePostAsync(Guid id, Guid currentUserId, bool isAdmin = false, CancellationToken cancellationToken = default);
     Task MarkAnsweredAsync(Guid id, bool isAnswered, Guid currentUserId, CancellationToken cancellationToken = default);
+    Task<PostResponse> SetVisibilityAsync(Guid id, bool isHidden, CancellationToken cancellationToken = default);
 }

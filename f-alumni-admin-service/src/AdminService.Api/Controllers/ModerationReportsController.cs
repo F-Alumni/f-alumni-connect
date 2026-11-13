@@ -33,6 +33,7 @@ public class ModerationReportsController : ControllerBase
     /// Retrieves a paginated list of moderation reports (AD-05).
     /// </summary>
     [HttpGet]
+    [HttpGet("/api/v1/admin/reports")]
     [ProducesResponseType(typeof(PagedResponse<ModerationReportResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -83,9 +84,10 @@ public class ModerationReportsController : ControllerBase
         var adminId = User.GetUserId();
         var adminEmail = User.GetUserEmail();
         var ipAddress = HttpContext.GetClientIpAddress();
+        var bearerToken = Request.GetBearerToken();
 
         var result = await _reportService.ResolveReportAsync(
-            adminId, adminEmail, id, request, ipAddress, cancellationToken);
+            adminId, adminEmail, id, request, ipAddress, cancellationToken, bearerToken);
 
         return Ok(result);
     }

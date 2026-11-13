@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using Confluent.Kafka;
 using Contracts.Events;
@@ -9,15 +10,20 @@ namespace ForumService.Services.Implementations;
 
 public class KafkaProducerService : IKafkaProducerService
 {
+    private static readonly HttpClient SharedHttpClient = new() { Timeout = TimeSpan.FromSeconds(2.5) };
+    private readonly IConfiguration _configuration;
     private readonly ILogger<KafkaProducerService> _logger;
     private readonly string _bootstrapServers;
+    private readonly bool _kafkaEnabled;
 
     public KafkaProducerService(IConfiguration configuration, ILogger<KafkaProducerService> logger)
     {
+        _configuration = configuration;
         _logger = logger;
+        _kafkaEnabled = !string.Equals(configuration["Kafka:Enabled"], "false", StringComparison.OrdinalIgnoreCase);
         _bootstrapServers = configuration["Kafka:BootstrapServers"]
             ?? Environment.GetEnvironmentVariable("KAFKA_BOOTSTRAP_SERVERS")
-            ?? "localhost:29092";
+            ?? string.Empty;
     }
 
     public Task PublishPostCreatedAsync(PostCreatedEventV1 eventData, CancellationToken cancellationToken = default)
@@ -72,11 +78,6 @@ public class KafkaProducerService : IKafkaProducerService
         T eventData,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_bootstrapServers))
-        {
-            return;
-        }
-
         var envelope = new EventEnvelope<T>(
             eventType: eventType,
             version: version,
@@ -86,6 +87,12 @@ public class KafkaProducerService : IKafkaProducerService
         );
 
         var jsonPayload = JsonSerializer.Serialize(envelope);
+
+        if (!_kafkaEnabled || string.IsNullOrWhiteSpace(_bootstrapServers))
+        {
+            await ForwardViaHttpBridgeAsync(topic, jsonPayload, cancellationToken);
+            return;
+        }
 
         try
         {
@@ -107,7 +114,38 @@ public class KafkaProducerService : IKafkaProducerService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Could not publish {EventType} to Kafka ({BootstrapServers}): {Message}. Continuing gracefully.", eventType, _bootstrapServers, ex.Message);
+            _logger.LogWarning("Could not publish {EventType} to Kafka ({BootstrapServers}): {Message}. Falling back to HTTP event bridge.", eventType, _bootstrapServers, ex.Message);
+            await ForwardViaHttpBridgeAsync(topic, jsonPayload, cancellationToken);
+        }
+    }
+
+    private async Task ForwardViaHttpBridgeAsync(string topic, string rawEnvelopeJson, CancellationToken cancellationToken)
+    {
+        string? targetUrl = null;
+        if (topic is "forum.post_reacted.v1" or "forum.comment_created.v1")
+        {
+            var baseUrl = (_configuration["Services:NotificationService:Url"] ?? "http://localhost:5006").TrimEnd('/');
+            targetUrl = $"{baseUrl}/api/v1/internal/notifications/events/{topic}";
+        }
+        else if (topic == ReportCreatedEventV1.DefaultTopic)
+        {
+            var adminUrl = (_configuration["Services:AdminService:Url"] ?? "http://localhost:5005").TrimEnd('/');
+            targetUrl = $"{adminUrl}/api/v1/internal/moderation/reports/events/{topic}";
+        }
+
+        if (targetUrl is null)
+        {
+            return;
+        }
+
+        try
+        {
+            using var content = new StringContent(rawEnvelopeJson, Encoding.UTF8, "application/json");
+            await SharedHttpClient.PostAsync(targetUrl, content, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "HTTP event bridge unreachable at {Url}; continuing gracefully.", targetUrl);
         }
     }
 }

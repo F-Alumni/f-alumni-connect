@@ -127,12 +127,13 @@ public class PostService : IPostService
         int page = 1,
         int pageSize = 10,
         Guid? currentUserId = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool includeHidden = false)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
 
-        var (items, totalCount) = await _postRepository.GetFeedAsync(campus, major, postType, search, isAnswered, sort, page, pageSize, cancellationToken);
+        var (items, totalCount) = await _postRepository.GetFeedAsync(campus, major, postType, search, isAnswered, sort, page, pageSize, cancellationToken, includeHidden);
 
         var responses = new List<PostResponse>();
         foreach (var item in items)
@@ -258,6 +259,21 @@ public class PostService : IPostService
         await _postRepository.UpdateAsync(post, cancellationToken);
     }
 
+    public async Task<PostResponse> SetVisibilityAsync(Guid id, bool isHidden, CancellationToken cancellationToken = default)
+    {
+        var post = await _postRepository.GetByIdIncludingHiddenAsync(id, cancellationToken);
+        if (post == null)
+        {
+            throw new NotFoundException("Post", id);
+        }
+
+        post.IsHidden = isHidden;
+        post.UpdatedAt = DateTime.UtcNow;
+        await _postRepository.UpdateAsync(post, cancellationToken);
+        _logger.LogInformation("Set post {PostId} visibility IsHidden={IsHidden}", id, isHidden);
+        return MapToResponse(post);
+    }
+
     private static PostResponse MapToResponse(Post post)
     {
         return new PostResponse
@@ -276,6 +292,7 @@ public class PostService : IPostService
             LikeCount = post.LikeCount,
             CommentCount = post.CommentCount,
             IsPinned = post.IsPinned,
+            IsHidden = post.IsHidden,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt,
             Images = post.Images.OrderBy(i => i.Order).Select(i => i.ImageUrl).ToList(),

@@ -48,7 +48,7 @@ public static class ChatDatabaseSeeder
                         ConversationId = DemoConversationId,
                         UserId = UserAId,
                         DisplayName = "Nguyen Van A",
-                        AvatarUrl = "https://cdn.falumni.local/avatars/nguyenvana.jpg",
+                        AvatarUrl = string.Empty,
                         JoinedAtUtc = now.AddMinutes(-30)
                     },
                     new()
@@ -57,7 +57,7 @@ public static class ChatDatabaseSeeder
                         ConversationId = DemoConversationId,
                         UserId = UserBId,
                         DisplayName = "Tran Thi B",
-                        AvatarUrl = "https://cdn.falumni.local/avatars/tranthib.jpg",
+                        AvatarUrl = string.Empty,
                         JoinedAtUtc = now.AddMinutes(-30)
                     }
                 },

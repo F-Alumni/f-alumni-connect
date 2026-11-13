@@ -46,8 +46,11 @@ public class RagIngestionService : IRagIngestionService
             return result;
         }
 
-        var files = Directory.GetFiles(directoryPath, "*.docx", SearchOption.AllDirectories);
-        _logger.LogInformation("Tìm thấy {Count} tệp .docx trong {Path}", files.Length, directoryPath);
+        var allowedExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".docx", ".md", ".txt" };
+        var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories)
+            .Where(f => allowedExtensions.Contains(Path.GetExtension(f)))
+            .ToArray();
+        _logger.LogInformation("Tìm thấy {Count} tệp tài liệu (.docx/.md/.txt) trong {Path}", files.Length, directoryPath);
 
         foreach (var file in files)
         {
@@ -55,6 +58,7 @@ public class RagIngestionService : IRagIngestionService
             {
                 var relativePath = Path.GetRelativePath(directoryPath, file).Replace('\\', '/');
                 var fileName = Path.GetFileName(file);
+                var ext = Path.GetExtension(file);
 
                 var existing = await _ragRepository.GetDocumentByPathAsync(relativePath, cancellationToken)
                     ?? await _ragRepository.GetDocumentByPathAsync(file, cancellationToken);
@@ -69,7 +73,9 @@ public class RagIngestionService : IRagIngestionService
                     await _ragRepository.DeleteDocumentByPathAsync(existing.SourcePath, cancellationToken);
                 }
 
-                var text = ExtractTextFromDocx(file);
+                var text = string.Equals(ext, ".docx", StringComparison.OrdinalIgnoreCase)
+                    ? ExtractTextFromDocx(file)
+                    : await File.ReadAllTextAsync(file, System.Text.Encoding.UTF8, cancellationToken);
                 if (string.IsNullOrWhiteSpace(text))
                 {
                     continue;

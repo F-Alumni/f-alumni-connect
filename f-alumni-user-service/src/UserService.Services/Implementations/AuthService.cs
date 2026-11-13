@@ -86,7 +86,7 @@ public class AuthService : IAuthService
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 DisplayName = request.FullName.Trim(),
-                AvatarUrl = "https://cdn.falumni.local/avatars/default.jpg",
+                AvatarUrl = string.Empty,
                 StudentCode = request.StudentCode?.Trim() ?? string.Empty,
                 Campus = campus,
                 GraduationYear = request.GraduationYear,
@@ -278,7 +278,7 @@ public class AuthService : IAuthService
                     UserId = userId,
                     DisplayName = resolvedName,
                     AvatarUrl = string.IsNullOrWhiteSpace(avatarUrl)
-                        ? "https://cdn.falumni.local/avatars/default.jpg"
+                        ? string.Empty
                         : avatarUrl,
                     Campus = CampusNormalizer.NormalizeOrDefault(request.Campus),
                     UpdatedAtUtc = DateTime.UtcNow

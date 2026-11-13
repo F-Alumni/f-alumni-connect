@@ -3,6 +3,7 @@ using AdminService.Repositories.Interfaces;
 using AdminService.Services.DTOs.Common;
 using AdminService.Services.DTOs.Moderation;
 using AdminService.Services.Exceptions;
+using AdminService.Services.HttpClients;
 using AdminService.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
@@ -12,16 +13,19 @@ public class ModerationReportService : IModerationReportService
 {
     private readonly IModerationReportRepository _reportRepository;
     private readonly IAuditLogService _auditLogService;
+    private readonly IForumModerationClient? _forumModerationClient;
     private readonly ILogger<ModerationReportService> _logger;
 
     public ModerationReportService(
         IModerationReportRepository reportRepository,
         IAuditLogService auditLogService,
-        ILogger<ModerationReportService> logger)
+        ILogger<ModerationReportService> logger,
+        IForumModerationClient? forumModerationClient = null)
     {
         _reportRepository = reportRepository;
         _auditLogService = auditLogService;
         _logger = logger;
+        _forumModerationClient = forumModerationClient;
     }
 
     public async Task<PagedResponse<ModerationReportResponse>> GetReportsAsync(
@@ -58,12 +62,24 @@ public class ModerationReportService : IModerationReportService
         Guid reportId,
         ResolveReportRequest request,
         string? ipAddress = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? bearerToken = null)
     {
         var report = await _reportRepository.GetByIdAsync(reportId, cancellationToken);
         if (report is null)
         {
             throw new NotFoundException($"Moderation report '{reportId}' was not found.");
+        }
+
+        if (request.DeleteTargetContent && _forumModerationClient is not null)
+        {
+            var contentActionOk = report.TargetType.Equals("Comment", StringComparison.OrdinalIgnoreCase)
+                ? await _forumModerationClient.DeleteCommentAsync(report.TargetId, bearerToken, cancellationToken)
+                : await _forumModerationClient.HidePostAsync(report.TargetId, bearerToken, cancellationToken);
+
+            _logger.LogInformation(
+                "Moderation content action for {TargetType} {TargetId} (DeleteTargetContent=true) succeeded={Succeeded}",
+                report.TargetType, report.TargetId, contentActionOk);
         }
 
         report.Status = "Resolved";
@@ -80,7 +96,7 @@ public class ModerationReportService : IModerationReportService
             targetEntity: report.TargetType,
             targetId: report.TargetId.ToString(),
             reason: request.ResolutionNotes,
-            details: $"ReportId: {reportId}, ActionTaken: {request.ActionTaken}",
+            details: $"ReportId: {reportId}, ActionTaken: {request.ActionTaken}, DeleteTargetContent: {request.DeleteTargetContent}",
             ipAddress: ipAddress,
             cancellationToken: cancellationToken);
 
