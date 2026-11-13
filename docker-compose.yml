@@ -169,7 +169,7 @@ services:
       Jwt__Audience: "falumni-services"
       Kafka__BootstrapServers: "kafka:9092"
       Gemini__ApiKey: "${GEMINI_API_KEY:-}"
-      Gemini__Model: "${GEMINI_MODEL:-gemini-1.5-flash}"
+      Gemini__Model: "${GEMINI_MODEL:-gemini-2.5-flash}"
     ports:
       - "5004:5004"
     depends_on:
